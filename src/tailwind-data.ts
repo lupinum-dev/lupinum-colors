@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import referenceJson from "../reference/tailwind-colors.generated.json" with { type: "json" };
 import { SHADE_NAMES, type PaletteFamily, type TailwindReference } from "./types.js";
 
 let cachedReference: TailwindReference | undefined;
@@ -6,8 +6,7 @@ let cachedReference: TailwindReference | undefined;
 export function loadTailwindReference(): TailwindReference {
   if (cachedReference) return cachedReference;
 
-  const path = new URL("../reference/tailwind-colors.generated.json", import.meta.url);
-  const parsed = JSON.parse(readFileSync(path, "utf8")) as TailwindReference;
+  const parsed = referenceJson as unknown as TailwindReference;
 
   if (!parsed.tailwindVersion || !parsed.sourceSha256) {
     throw new Error("Tailwind reference metadata is incomplete.");
