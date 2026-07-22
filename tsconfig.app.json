@@ -1,8 +1,10 @@
 {
   "extends": "@vue/tsconfig/tsconfig.dom.json",
-  "include": ["env.d.ts", "src/**/*", "src/**/*.vue"],
+  "include": ["env.d.ts", "src/**/*", "src/**/*.vue", "test/**/*.ts"],
   "exclude": ["src/**/__tests__/*", "src/cli.ts", "src/bin.ts"],
   "compilerOptions": {
+    "types": ["node"],
+
     // Path mapping for cleaner imports.
     "paths": {
       "@/*": ["./src/*"]
