@@ -1,45 +1,42 @@
 {
-  "name": "tailwind-oklch-palette",
-  "version": "1.0.0",
+  "name": "vue-project",
+  "version": "0.0.0",
   "private": true,
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    }
-  },
-  "files": [
-    "dist/",
-    "reference/",
-    "README.md"
-  ],
-  "bin": {
-    "tw-palette": "./dist/bin.js"
-  },
   "scripts": {
-    "reference:build": "tsx scripts/build-reference.ts",
-    "reference:verify": "tsx scripts/build-reference.ts --check",
-    "build": "tsc -p tsconfig.json",
-    "dev": "tsx src/bin.ts",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "benchmark": "vitest run test/benchmark.test.ts --reporter=verbose",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "verify": "npm run reference:verify && npm run typecheck && npm test && npm run benchmark && npm run build",
-    "prepack": "npm run verify"
+    "dev": "vp dev",
+    "build": "run-p type-check \"build-only {@}\" --",
+    "preview": "vp preview",
+    "build-only": "vp build",
+    "type-check": "vue-tsc --build",
+    "format": "vp fmt src/"
   },
   "dependencies": {
-    "culori": "4.0.2"
+    "vue": "^3.5.40"
   },
   "devDependencies": {
-    "@types/culori": "4.0.1",
-    "@types/node": "24.10.1",
-    "tsx": "4.23.1",
-    "tailwindcss": "4.3.3",
-    "typescript": "7.0.2",
-    "vitest": "4.1.10"
+    "@tsconfig/node24": "^24.0.4",
+    "@types/node": "^24.13.3",
+    "@vitejs/plugin-vue": "^6.0.8",
+    "@vue/tsconfig": "^0.9.1",
+    "npm-run-all2": "^9.0.2",
+    "typescript": "~6.0.0",
+    "vite": "npm:@voidzero-dev/vite-plus-core@0.2.3",
+    "vite-plugin-vue-devtools": "^8.1.5",
+    "vite-plus": "0.2.3",
+    "vue-tsc": "^3.3.7"
+  },
+  "overrides": {
+    "vite": "npm:@voidzero-dev/vite-plus-core@0.2.3"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "npm",
+      "version": "12.0.1",
+      "onFail": "download"
+    }
+  },
+  "engines": {
+    "node": "^22.18.0 || >=24.12.0"
   }
 }
