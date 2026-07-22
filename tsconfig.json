@@ -8,7 +8,7 @@
     "outDir": "dist",
     "rootDir": "src",
     "skipLibCheck": true,
-    "types": ["node"]
+    "types": ["node", "vitest/globals"]
   },
   "include": ["src/**/*.ts"]
 }

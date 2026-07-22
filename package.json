@@ -1,25 +1,45 @@
 {
   "name": "tailwind-oklch-palette",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist/",
+    "reference/",
+    "README.md"
+  ],
   "bin": {
-    "tw-palette": "./dist/cli.js"
+    "tw-palette": "./dist/bin.js"
   },
   "scripts": {
+    "reference:build": "tsx scripts/build-reference.ts",
+    "reference:verify": "tsx scripts/build-reference.ts --check",
     "build": "tsc -p tsconfig.json",
-    "dev": "tsx src/cli.ts",
-    "test": "node --import tsx --test test/*.test.ts",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "dev": "tsx src/bin.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "benchmark": "vitest run test/benchmark.test.ts --reporter=verbose",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "verify": "npm run reference:verify && npm run typecheck && npm test && npm run benchmark && npm run build",
+    "prepack": "npm run verify"
   },
   "dependencies": {
-    "culori": "4.0.2",
-    "tailwindcss": "4.3.3"
+    "culori": "4.0.2"
   },
   "devDependencies": {
     "@types/culori": "4.0.1",
     "@types/node": "24.10.1",
     "tsx": "4.23.1",
-    "typescript": "7.0.2"
+    "tailwindcss": "4.3.3",
+    "typescript": "7.0.2",
+    "vitest": "4.1.10"
   }
 }

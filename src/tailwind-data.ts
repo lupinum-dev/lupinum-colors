@@ -1,29 +1,33 @@
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { parseOklch } from "./color.js";
-import { SHADE_NAMES, type OklchColor, type PaletteFamily, type Shade } from "./types.js";
+import { SHADE_NAMES, type PaletteFamily, type TailwindReference } from "./types.js";
 
-const COLOR_DECLARATION =
-  /--color-([a-z]+)-(50|100|200|300|400|500|600|700|800|900|950):\s*(oklch\([^)]+\))/g;
+let cachedReference: TailwindReference | undefined;
 
-export function loadTailwindFamilies(): PaletteFamily[] {
-  const themePath = fileURLToPath(import.meta.resolve("tailwindcss/theme.css"));
-  const css = readFileSync(themePath, "utf8");
-  const collected = new Map<string, Partial<Record<Shade, OklchColor>>>();
+export function loadTailwindReference(): TailwindReference {
+  if (cachedReference) return cachedReference;
 
-  for (const match of css.matchAll(COLOR_DECLARATION)) {
-    const name = match[1];
-    const shade = Number(match[2]) as Shade;
-    const colors = collected.get(name) ?? {};
-    colors[shade] = parseOklch(match[3]);
-    collected.set(name, colors);
+  const path = new URL("../reference/tailwind-colors.generated.json", import.meta.url);
+  const parsed = JSON.parse(readFileSync(path, "utf8")) as TailwindReference;
+
+  if (!parsed.tailwindVersion || !parsed.sourceSha256) {
+    throw new Error("Tailwind reference metadata is incomplete.");
+  }
+  if (parsed.shades.join(",") !== SHADE_NAMES.join(",")) {
+    throw new Error("Tailwind reference shade set does not match the generator.");
+  }
+  for (const family of parsed.families) {
+    if (!SHADE_NAMES.every((shade) => family.colors[shade])) {
+      throw new Error(`Tailwind reference family ${family.name} is incomplete.`);
+    }
   }
 
-  return [...collected.entries()]
-    .filter(([, colors]) => SHADE_NAMES.every((shade) => colors[shade] !== undefined))
-    .map(([name, colors]) => ({
-      name,
-      colors: colors as Record<Shade, OklchColor>,
-    }))
-    .filter((family) => Math.max(...SHADE_NAMES.map((shade) => family.colors[shade].c)) >= 0.05);
+  cachedReference = parsed;
+  return parsed;
+}
+
+export function loadTailwindFamilies(
+  kind?: PaletteFamily["kind"],
+): PaletteFamily[] {
+  const families = loadTailwindReference().families;
+  return kind ? families.filter((family) => family.kind === kind) : families;
 }
