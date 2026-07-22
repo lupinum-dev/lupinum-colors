@@ -1,42 +1,50 @@
-# vue-project
+# Tailwind OKLCH Palette Lab
 
-This template should help get you started developing with Vue 3 in Vite.
+A TypeScript palette generator and technical Vue editor calibrated against the complete Tailwind CSS color dataset.
 
-## Recommended IDE Setup
+Give it any CSS color—hex, RGB, HSL, or OKLCH—and it generates the Tailwind shade sequence `50` through `950`. The editor keeps raw OKLCH as its single source of truth while exposing OKLCH, HSL, and HSV editing views.
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+## Palette workflow
 
-## Recommended Browser Setup
+1. Enter a seed color and choose whether it must remain an exact shade or may be fitted to the canonical curve.
+2. Inspect the nearest Tailwind reference palettes as independently styled curve overlays.
+3. Borrow lightness, chroma/saturation, or hue from any reference:
+   - **Values** moves toward the literal reference values.
+   - **Shape** transfers the reference curve relative to the protected anchor.
+4. Shape chroma independently for light, middle, and dark tonal bands; optionally stabilize dark hues toward the anchor.
+5. Smooth a selected channel with local Savitzky–Golay regularization.
+6. Preview every bulk operation before applying it, validate gamut/contrast/spacing warnings, then export Tailwind, CSS, or JSON tokens.
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+All committed operations and direct curve edits are recorded in undo/redo history. Reference overlays and the generated baseline never mutate the working palette.
 
-## Type Support for `.vue` Imports in TS
+## Run locally
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
+Requires Node.js `^22.18.0` or `>=24.12.0` and npm `12.0.1`.
 
 ```sh
-pnpm install
+vp install
+vp dev
 ```
 
-### Compile and Hot-Reload for Development
+Open [http://localhost:5173](http://localhost:5173).
+
+## Verify
 
 ```sh
-pnpm dev
+vp test
+vp run type-check
+vp build
 ```
 
-### Type-Check, Compile and Minify for Production
+The test suite covers parsing, gamut mapping, reference calibration, generation invariants, nearest-reference ranking, channel borrowing, tonal chroma shaping, hue stabilization, and curve smoothing.
+
+## CLI
+
+The underlying generator remains available as a TypeScript CLI:
 
 ```sh
-pnpm build
+vp run palette primary '#89E5D2' --seed exact --at auto
+vp run palette primary 'oklch(89.7% 0.196 126.665)' --at 300
 ```
+
+Run `vp run palette --help` for all options.

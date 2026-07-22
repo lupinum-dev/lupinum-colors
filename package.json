@@ -8,6 +8,7 @@
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vp preview",
     "build-only": "vp build",
+    "palette": "tsx src/bin.ts",
     "type-check": "vue-tsc --build",
     "format": "vp fmt src/"
   },

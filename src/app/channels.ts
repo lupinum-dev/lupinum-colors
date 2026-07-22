@@ -1,6 +1,6 @@
 import { converter, type Color } from 'culori'
-import { normalizeHue } from '@/color'
-import type { OklchColor } from '@/types'
+import { normalizeHue } from '../color'
+import type { OklchColor } from '../types'
 
 export type ChannelMode = 'oklch' | 'hsv' | 'hsl'
 
