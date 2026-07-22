@@ -177,7 +177,7 @@ export function smoothChannel(
 
   for (let pass = 0; pass < passes; pass += 1) {
     const next = [...working]
-    for (let index = 1; index < working.length - 1; index += 1) {
+    for (let index = 0; index < working.length; index += 1) {
       const shade = SHADE_NAMES[index]
       if (
         (options.protectAnchor && shade === options.anchor) ||
@@ -202,6 +202,54 @@ export function smoothChannel(
     if (weight <= 0) continue
     const value = options.channel.key === 'h' ? normalizeHue(working[index]) : working[index]
     result[shade] = options.channel.set(result[shade], value)
+  }
+  return result
+}
+
+export interface ProportionalOptions {
+  channel: Channel
+  shade: Shade
+  value: number
+  radius: number
+  anchor: Shade
+  protectAnchor: boolean
+}
+
+// Soft falloff for proportional editing: 1 at the dragged shade, fading to 0
+// just beyond `radius` shade steps.
+export function falloffWeight(distance: number, radius: number): number {
+  if (distance === 0) return 1
+  if (distance > radius) return 0
+  return smoothstep(0, 1, 1 - distance / (radius + 1))
+}
+
+// Move one shade's channel to `value` and carry neighbors along with falloff.
+// Ratio channels (chroma, saturation) scale multiplicatively so the curve keeps
+// its shape; other channels follow additively; hue follows the short way around.
+export function proportionalAdjust(
+  palette: Record<Shade, OklchColor>,
+  options: ProportionalOptions,
+): Record<Shade, OklchColor> {
+  const result = clonePalette(palette)
+  const channel = options.channel
+  const center = SHADE_NAMES.indexOf(options.shade)
+  const current = channel.get(palette[options.shade])
+  const isHue = channel.key === 'h'
+  const hueDelta = signedHueDelta(current, options.value)
+  const delta = options.value - current
+  const multiplier =
+    isRatioChannel(channel.key) && Math.abs(current) > 1e-6 ? options.value / current : null
+
+  for (const [index, shade] of SHADE_NAMES.entries()) {
+    const weight = falloffWeight(Math.abs(index - center), options.radius)
+    if (weight <= 0) continue
+    if (options.protectAnchor && shade === options.anchor && shade !== options.shade) continue
+    const valueAtShade = channel.get(palette[shade])
+    let next: number
+    if (isHue) next = valueAtShade + hueDelta * weight
+    else if (multiplier !== null) next = valueAtShade * (1 + (multiplier - 1) * weight)
+    else next = valueAtShade + delta * weight
+    result[shade] = channel.set(result[shade], next)
   }
   return result
 }
@@ -234,18 +282,24 @@ function tonalFactor(index: number, lights: number, middle: number, darks: numbe
   return darks
 }
 
+// Quadratic Savitzky–Golay kernel over a mirror-padded window, so shades near
+// the ends receive the same treatment as interior shades.
 function savitzkyGolay(values: number[], index: number): number {
-  if (index >= 2 && index <= values.length - 3) {
-    return (
-      (-3 * values[index - 2] +
-        12 * values[index - 1] +
-        17 * values[index] +
-        12 * values[index + 1] -
-        3 * values[index + 2]) /
-      35
-    )
-  }
-  return (values[index - 1] + 2 * values[index] + values[index + 1]) / 4
+  const at = (position: number) => values[reflectIndex(position, values.length)]
+  return (
+    (-3 * at(index - 2) +
+      12 * at(index - 1) +
+      17 * at(index) +
+      12 * at(index + 1) -
+      3 * at(index + 2)) /
+    35
+  )
+}
+
+function reflectIndex(index: number, length: number): number {
+  if (index < 0) return -index
+  if (index >= length) return 2 * (length - 1) - index
+  return index
 }
 
 function unwrapHue(values: number[]): number[] {

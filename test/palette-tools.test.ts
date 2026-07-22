@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vite-plus/test'
 import { CHANNEL_MODES } from '../src/app/channels'
 import {
   applyReferenceChannel,
+  proportionalAdjust,
   rankReferences,
   shapeChroma,
   smoothChannel,
@@ -112,5 +113,69 @@ describe('curve shaping', () => {
     expect(result[500]).toEqual(palette[500])
     expect(result[50]).toEqual(palette[50])
     expect(result[950]).toEqual(palette[950])
+  })
+
+  it('scales a chroma region proportionally with falloff around the dragged shade', () => {
+    const target = rose.colors[800].c * 0.5
+    const result = proportionalAdjust(rose.colors, {
+      channel: chroma,
+      shade: 800,
+      value: target,
+      radius: 2,
+      anchor: 500,
+      protectAnchor: false,
+    })
+    expect(result[800].c).toBeCloseTo(target, 10)
+    const neighborRatio = result[700].c / rose.colors[700].c
+    expect(neighborRatio).toBeGreaterThan(0.5)
+    expect(neighborRatio).toBeLessThan(1)
+    expect(result[900].c / rose.colors[900].c).toBeCloseTo(neighborRatio, 10)
+    expect(result[500].c).toBe(rose.colors[500].c)
+    expect(result[50].c).toBe(rose.colors[50].c)
+  })
+
+  it('keeps a protected anchor fixed inside a proportional drag radius', () => {
+    const result = proportionalAdjust(rose.colors, {
+      channel: chroma,
+      shade: 600,
+      value: rose.colors[600].c * 0.5,
+      radius: 2,
+      anchor: 500,
+      protectAnchor: true,
+    })
+    expect(result[500].c).toBe(rose.colors[500].c)
+    expect(result[700].c).toBeLessThan(rose.colors[700].c)
+  })
+
+  it('carries neighbors the short way around the hue circle', () => {
+    const palette = clone(rose.colors)
+    palette[800].h = 350
+    palette[900].h = 355
+    const result = proportionalAdjust(palette, {
+      channel: hue,
+      shade: 800,
+      value: 10,
+      radius: 1,
+      anchor: 500,
+      protectAnchor: false,
+    })
+    expect(result[800].h).toBeCloseTo(10, 10)
+    const moved = ((result[900].h - 355 + 540) % 360) - 180
+    expect(moved).toBeGreaterThan(0)
+    expect(moved).toBeLessThan(20)
+  })
+
+  it('smooths endpoint spikes when endpoint protection is off', () => {
+    const palette = clone(rose.colors)
+    palette[50].c = 0.2
+    const result = smoothChannel(palette, {
+      channel: chroma,
+      strength: 0.8,
+      scope: 'all',
+      anchor: 500,
+      protectAnchor: true,
+      protectEndpoints: false,
+    })
+    expect(result[50].c).toBeLessThan(palette[50].c)
   })
 })

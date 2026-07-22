@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { CHANNEL_MODES, type ChannelMode } from '@/app/channels'
 import { formatExport, type ExportFormat } from '@/app/format'
 import {
@@ -68,6 +68,35 @@ function contrastBadge(ratio: number): string {
   if (ratio >= 3) return 'AA-lg'
   return '—'
 }
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false
+  return Boolean(
+    target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])'),
+  )
+}
+
+function onHistoryShortcut(event: KeyboardEvent): void {
+  if (!(event.ctrlKey || event.metaKey) || event.altKey || isEditableTarget(event.target)) return
+
+  const key = event.key.toLowerCase()
+  const wantsUndo = key === 'z' && !event.shiftKey
+  const wantsRedo = (key === 'z' && event.shiftKey) || key === 'y'
+  if (
+    (!wantsUndo && !wantsRedo) ||
+    (wantsUndo && !canUndo.value) ||
+    (wantsRedo && !canRedo.value)
+  ) {
+    return
+  }
+
+  event.preventDefault()
+  if (wantsRedo) redo()
+  else undo()
+}
+
+onMounted(() => window.addEventListener('keydown', onHistoryShortcut))
+onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
 </script>
 
 <template>
@@ -78,8 +107,24 @@ function contrastBadge(ratio: number): string {
         <h1>Tailwind shade generator</h1>
       </div>
       <div class="history-actions">
-        <button type="button" :disabled="!canUndo" title="Undo" @click="undo">↶ Undo</button>
-        <button type="button" :disabled="!canRedo" title="Redo" @click="redo">↷ Redo</button>
+        <button
+          type="button"
+          :disabled="!canUndo"
+          title="Undo (Ctrl/⌘ Z)"
+          aria-keyshortcuts="Control+Z Meta+Z"
+          @click="undo"
+        >
+          ↶ Undo <kbd>Ctrl/⌘ Z</kbd>
+        </button>
+        <button
+          type="button"
+          :disabled="!canRedo"
+          title="Redo (Ctrl/⌘ Shift+Z or Ctrl/⌘ Y)"
+          aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y Meta+Y"
+          @click="redo"
+        >
+          ↷ Redo <kbd>⇧ Ctrl/⌘ Z</kbd>
+        </button>
         <button type="button" @click="resetToGenerated">Reset</button>
       </div>
     </header>
@@ -180,6 +225,10 @@ function contrastBadge(ratio: number): string {
     <div class="workspace">
       <div class="canvas-column">
         <PaletteEditor />
+        <p class="gesture-hint">
+          Drag a point to edit one shade · ⇧-drag to scale its region (scroll sets the radius) ·
+          arrow keys nudge the focused point
+        </p>
 
         <ul v-if="warnings.length" class="warnings">
           <li v-for="warning in warnings" :key="warning">{{ warning }}</li>
@@ -360,11 +409,19 @@ button.primary:hover:not(:disabled) {
   display: flex;
   gap: 6px;
 }
+.history-actions kbd {
+  margin-left: 5px;
+  color: #8f929d;
+  font:
+    9px ui-monospace,
+    monospace;
+}
 .generation-bar {
   align-items: flex-end;
   gap: 8px;
   padding: 12px;
   border: 1px solid #292b32;
+  border-radius: 9px;
   background: #1a1b20;
 }
 .field {
@@ -470,6 +527,11 @@ button.primary:hover:not(:disabled) {
   color: #858994;
   font-size: 10.5px;
   font-family: ui-monospace, monospace;
+}
+.gesture-hint {
+  margin: -6px 0 0;
+  color: #6f7380;
+  font-size: 10.5px;
 }
 .workspace {
   display: grid;

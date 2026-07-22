@@ -2,9 +2,13 @@
 import { computed, ref, watch } from 'vue'
 import { CHANNEL_MODES } from '@/app/channels'
 import {
-  activeOverlays,
+  OVERLAY_DASH,
+  OVERLAY_LINE_OPTIONS,
+  OVERLAY_MARKER_OPTIONS,
+  trianglePoints,
+} from '@/app/overlay-style'
+import {
   addOverlay,
-  anchor,
   applyPreview,
   canRedo,
   canUndo,
@@ -12,14 +16,15 @@ import {
   clearPreview,
   history,
   historyIndex,
-  lastResult,
   overlayConfigs,
   previewLabel,
   previewShades,
+  protectAnchor,
   redo,
   referenceFamilies,
   referenceRanks,
   removeOverlay,
+  resolvedAnchor,
   restoreHistory,
   setPreview,
   shades,
@@ -43,7 +48,7 @@ type InspectorTab = 'references' | 'borrow' | 'shape' | 'smooth' | 'history'
 const tabs: { id: InspectorTab; label: string }[] = [
   { id: 'references', label: 'References' },
   { id: 'borrow', label: 'Borrow' },
-  { id: 'shape', label: 'Shape' },
+  { id: 'shape', label: 'Tune' },
   { id: 'smooth', label: 'Smooth' },
   { id: 'history', label: 'History' },
 ]
@@ -56,14 +61,18 @@ const scope = ref<TonalScope>('all')
 const scopeFrom = ref<Shade>(50)
 const scopeTo = ref<Shade>(950)
 const feather = ref(1)
-const protectAnchor = ref(true)
 const addReferenceName = ref('')
 
-const overallChroma = ref(1)
-const lightChroma = ref(1)
-const middleChroma = ref(0.72)
-const darkChroma = ref(0.62)
-const hueStability = ref(0.65)
+const PRESETS = {
+  natural: { label: 'Natural', overall: 1, lights: 1, middle: 1, darks: 1, hue: 0 },
+  soft: { label: 'Soft neutral', overall: 1, lights: 1, middle: 0.5, darks: 0.58, hue: 0.8 },
+  'near-gray': { label: 'Near-gray', overall: 0.6, lights: 0.6, middle: 0.25, darks: 0.3, hue: 1 },
+} as const
+type PresetName = keyof typeof PRESETS
+const presetNames = Object.keys(PRESETS) as PresetName[]
+const stagedPreset = ref<PresetName | null>(null)
+const tuneDirty = ref(false)
+const hueStability = ref(0)
 
 const smoothChannelKey = ref('c')
 const smoothStrength = ref(0.35)
@@ -71,9 +80,6 @@ const smoothScope = ref<TonalScope>('all')
 const protectEndpoints = ref(true)
 
 const channels = computed(() => CHANNEL_MODES[channelMode.value])
-const resolvedAnchor = computed<Shade>(() =>
-  anchor.value === 'auto' ? (lastResult.value?.configuration.anchor ?? 500) : anchor.value,
-)
 const selectedSource = computed(() =>
   referenceFamilies.find((family) => family.name === sourceName.value),
 )
@@ -93,6 +99,31 @@ watch(
 watch(channelMode, () => {
   channelKey.value = channels.value[0]?.key ?? 'l'
   smoothChannelKey.value = channels.value[1]?.key ?? channels.value[0]?.key ?? 'l'
+})
+
+// Transform controls preview live; a pending preview never survives leaving its tab.
+watch(tab, () => clearPreview())
+watch(
+  [sourceName, channelKey, operation, amount, scope, scopeFrom, scopeTo, feather, protectAnchor],
+  () => {
+    if (tab.value === 'borrow') previewBorrow()
+  },
+)
+watch([hueStability, protectAnchor], () => {
+  if (tab.value === 'shape') {
+    tuneDirty.value = true
+    previewTune(stagedPreset.value)
+  }
+})
+watch([smoothChannelKey, smoothStrength, smoothScope, protectAnchor, protectEndpoints], () => {
+  if (tab.value === 'smooth') previewSmooth()
+})
+// Once a preview is applied or cancelled, staged tune state is meaningless.
+watch(previewShades, (value) => {
+  if (!value) {
+    stagedPreset.value = null
+    tuneDirty.value = false
+  }
 })
 
 function selectedChannel(key: string) {
@@ -124,47 +155,44 @@ function replaceBorrowedChannel(): void {
   previewBorrow()
 }
 
-function previewShape(): void {
+function previewTune(name: PresetName | null, hue: number = hueStability.value): void {
   if (!shades.value) return
+  const preset = PRESETS[name ?? 'natural']
   let result = shapeChroma(shades.value, {
-    overall: overallChroma.value,
-    lights: lightChroma.value,
-    middle: middleChroma.value,
-    darks: darkChroma.value,
+    overall: preset.overall,
+    lights: preset.lights,
+    middle: preset.middle,
+    darks: preset.darks,
     anchor: resolvedAnchor.value,
     protectAnchor: protectAnchor.value,
   })
   result = stabilizeHue(result, {
-    strength: hueStability.value,
+    strength: hue,
     scope: 'darks',
     feather: 1,
     anchor: resolvedAnchor.value,
     protectAnchor: protectAnchor.value,
   })
-  setPreview(result, 'Applied tonal chroma envelope and dark hue stability')
+  setPreview(
+    result,
+    name ? `Applied ${preset.label} preset` : `Stabilized dark hues at ${Math.round(hue * 100)}%`,
+  )
 }
 
-function setShapePreset(preset: 'natural' | 'soft' | 'near-gray'): void {
-  if (preset === 'natural') {
-    overallChroma.value = 1
-    lightChroma.value = 1
-    middleChroma.value = 1
-    darkChroma.value = 1
-    hueStability.value = 0
-  } else if (preset === 'soft') {
-    overallChroma.value = 1
-    lightChroma.value = 1
-    middleChroma.value = 0.5
-    darkChroma.value = 0.58
-    hueStability.value = 0.8
-  } else {
-    overallChroma.value = 0.6
-    lightChroma.value = 0.6
-    middleChroma.value = 0.25
-    darkChroma.value = 0.3
-    hueStability.value = 1
-  }
-  previewShape()
+function hoverPreset(name: PresetName): void {
+  previewTune(name, PRESETS[name].hue)
+}
+
+function leavePreset(): void {
+  if (tuneDirty.value || stagedPreset.value) previewTune(stagedPreset.value)
+  else clearPreview()
+}
+
+function stagePreset(name: PresetName): void {
+  stagedPreset.value = name
+  tuneDirty.value = true
+  hueStability.value = PRESETS[name].hue
+  previewTune(name)
 }
 
 function previewSmooth(): void {
@@ -188,6 +216,11 @@ function addSelectedReference(): void {
   if (!addReferenceName.value) return
   addOverlay(addReferenceName.value)
   addReferenceName.value = availableReferences.value[0]?.family.name ?? ''
+}
+
+function borrowFrom(name: string): void {
+  sourceName.value = name
+  tab.value = 'borrow'
 }
 </script>
 
@@ -216,7 +249,12 @@ function addSelectedReference(): void {
       </header>
 
       <div class="reference-list">
-        <article v-for="overlay in overlayConfigs" :key="overlay.name" class="reference-row">
+        <article
+          v-for="overlay in overlayConfigs"
+          :key="overlay.name"
+          class="reference-row"
+          :class="{ off: !overlay.enabled }"
+        >
           <div class="reference-title">
             <label class="check">
               <input
@@ -224,7 +262,42 @@ function addSelectedReference(): void {
                 :checked="overlay.enabled"
                 @change="updateOverlay(overlay.name, { enabled: !overlay.enabled })"
               />
-              <span class="marker" :style="{ color: overlay.color }">{{ overlay.marker }}</span>
+              <svg class="sample" width="46" height="14" aria-hidden="true">
+                <line
+                  x1="2"
+                  y1="7"
+                  x2="44"
+                  y2="7"
+                  :stroke="overlay.color"
+                  stroke-width="1.5"
+                  :stroke-dasharray="OVERLAY_DASH[overlay.line]"
+                />
+                <circle
+                  v-if="overlay.marker === 'circle'"
+                  cx="23"
+                  cy="7"
+                  r="3.5"
+                  :stroke="overlay.color"
+                />
+                <rect
+                  v-else-if="overlay.marker === 'square'"
+                  x="19.7"
+                  y="3.7"
+                  width="6.6"
+                  height="6.6"
+                  :stroke="overlay.color"
+                />
+                <rect
+                  v-else-if="overlay.marker === 'diamond'"
+                  x="19.8"
+                  y="3.8"
+                  width="6.4"
+                  height="6.4"
+                  transform="rotate(45 23 7)"
+                  :stroke="overlay.color"
+                />
+                <polygon v-else :points="trianglePoints(23, 7, 4.4)" :stroke="overlay.color" />
+              </svg>
               <strong>{{ overlay.name }}</strong>
             </label>
             <span class="score">{{ overlay.score.toFixed(0) }}%</span>
@@ -247,12 +320,35 @@ function addSelectedReference(): void {
                 })
               "
             >
-              <option value="dash">dash</option>
-              <option value="dot">dot</option>
-              <option value="dash-dot">dash · dot</option>
-              <option value="long-dash">long dash</option>
+              <option
+                v-for="option in OVERLAY_LINE_OPTIONS"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+            <select
+              :value="overlay.marker"
+              :aria-label="`${overlay.name} marker shape`"
+              @change="
+                updateOverlay(overlay.name, {
+                  marker: ($event.target as HTMLSelectElement).value as typeof overlay.marker,
+                })
+              "
+            >
+              <option v-for="marker in OVERLAY_MARKER_OPTIONS" :key="marker" :value="marker">
+                {{ marker }}
+              </option>
             </select>
             <button type="button" @click="soloOverlay(overlay.name)">Solo</button>
+            <button
+              type="button"
+              :aria-label="`Borrow a channel from ${overlay.name}`"
+              @click="borrowFrom(overlay.name)"
+            >
+              Borrow
+            </button>
             <button
               type="button"
               aria-label="Remove reference"
@@ -277,13 +373,6 @@ function addSelectedReference(): void {
         <button type="button" :disabled="!addReferenceName" @click="addSelectedReference">
           Add
         </button>
-      </div>
-
-      <div v-if="activeOverlays.length" class="legend" aria-label="Overlay legend">
-        <span v-for="overlay in activeOverlays" :key="overlay.name">
-          <i :style="{ color: overlay.color }">—</i> {{ overlay.name }} · {{ overlay.line }} ·
-          {{ overlay.marker }}
-        </span>
       </div>
     </section>
 
@@ -337,39 +426,33 @@ function addSelectedReference(): void {
         {{ resolvedAnchor }}</label
       >
       <div class="actions">
-        <button type="button" class="primary" @click="previewBorrow">Preview</button>
         <button type="button" @click="replaceBorrowedChannel">Replace 100%</button>
       </div>
+      <p class="hint">Changes preview live — commit them with Apply below.</p>
     </section>
 
     <section v-else-if="tab === 'shape'" class="inspector-body">
       <header>
         <div>
-          <h2>Chroma envelope</h2>
-          <p>Scale chroma by tonal band, then pull unstable dark hues toward the anchor.</p>
+          <h2>Tonal presets</h2>
+          <p>Hover a preset to compare it live, click to stage it.</p>
         </div>
       </header>
       <div class="preset-row">
-        <button type="button" @click="setShapePreset('natural')">Natural</button>
-        <button type="button" @click="setShapePreset('soft')">Soft neutral</button>
-        <button type="button" @click="setShapePreset('near-gray')">Near-gray</button>
+        <button
+          v-for="name in presetNames"
+          :key="name"
+          type="button"
+          :class="{ staged: stagedPreset === name }"
+          @mouseenter="hoverPreset(name)"
+          @mouseleave="leavePreset"
+          @focus="hoverPreset(name)"
+          @blur="leavePreset"
+          @click="stagePreset(name)"
+        >
+          {{ PRESETS[name].label }}
+        </button>
       </div>
-      <label
-        >Overall <output>{{ overallChroma.toFixed(2) }}×</output>
-        <input v-model.number="overallChroma" type="range" min="0" max="1.5" step="0.01" />
-      </label>
-      <label
-        >Lights · 50–300 <output>{{ lightChroma.toFixed(2) }}×</output>
-        <input v-model.number="lightChroma" type="range" min="0" max="1.5" step="0.01" />
-      </label>
-      <label
-        >Middle · 400–600 <output>{{ middleChroma.toFixed(2) }}×</output>
-        <input v-model.number="middleChroma" type="range" min="0" max="1.5" step="0.01" />
-      </label>
-      <label
-        >Darks · 700–950 <output>{{ darkChroma.toFixed(2) }}×</output>
-        <input v-model.number="darkChroma" type="range" min="0" max="1.5" step="0.01" />
-      </label>
       <label
         >Dark hue stability <output>{{ Math.round(hueStability * 100) }}%</output>
         <input v-model.number="hueStability" type="range" min="0" max="1" step="0.01" />
@@ -378,7 +461,10 @@ function addSelectedReference(): void {
         ><input v-model="protectAnchor" type="checkbox" /> Preserve anchor
         {{ resolvedAnchor }}</label
       >
-      <button type="button" class="primary" @click="previewShape">Preview envelope</button>
+      <p class="hint">
+        For regional chroma, work on the canvas: ⇧-drag a C point to scale its neighborhood —
+        scrolling while dragging widens or narrows the affected region.
+      </p>
     </section>
 
     <section v-else-if="tab === 'smooth'" class="inspector-body">
@@ -416,7 +502,7 @@ function addSelectedReference(): void {
       <label class="check"
         ><input v-model="protectEndpoints" type="checkbox" /> Preserve endpoints</label
       >
-      <button type="button" class="primary" @click="previewSmooth">Preview smoothing</button>
+      <p class="hint">Changes preview live — commit them with Apply below.</p>
     </section>
 
     <section v-else class="inspector-body">
@@ -559,6 +645,11 @@ input {
 .preset-row button {
   flex: 1;
 }
+.preset-row button.staged {
+  border-color: #586b9e;
+  background: #283048;
+  color: #cbd6ff;
+}
 .inline-control select {
   flex: 1;
 }
@@ -587,16 +678,23 @@ input {
 }
 .reference-controls {
   margin-top: 8px;
+  flex-wrap: wrap;
 }
 .reference-controls select {
   flex: 1;
 }
-.marker {
-  width: 48px;
-  overflow: hidden;
-  color: currentColor;
-  font-size: 9px;
-  text-overflow: ellipsis;
+.sample {
+  flex: 0 0 auto;
+}
+.sample circle,
+.sample rect,
+.sample polygon {
+  fill: #202127;
+  stroke-width: 1.5;
+}
+.reference-row.off .sample,
+.reference-row.off strong {
+  opacity: 0.4;
 }
 .score {
   color: #8f929d;
@@ -604,19 +702,10 @@ input {
     11px ui-monospace,
     monospace;
 }
-.legend {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  color: #8f929d;
-  font:
-    10px ui-monospace,
-    monospace;
-}
-.legend i {
-  font-size: 18px;
-  font-style: normal;
-  vertical-align: -1px;
+.hint {
+  margin: 0;
+  color: #767a85;
+  font-size: 10.5px;
 }
 .history-list {
   display: flex;

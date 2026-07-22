@@ -5,11 +5,16 @@ import { renderToString } from '@vue/server-renderer'
 import { mount } from '@vue/test-utils'
 import { describe, expect, it } from 'vite-plus/test'
 import {
+  canRedo,
+  canUndo,
+  commitPalette,
   displayShades,
   generate,
   generationError,
+  historyIndex,
   overlayConfigs,
   seedColor,
+  shades,
 } from '../src/app/palette-store'
 import App from '../src/App.vue'
 import PaletteEditor from '../src/components/PaletteEditor.vue'
@@ -63,5 +68,57 @@ describe('palette editor rendering', () => {
     expect(wrapper.findAll('.reference-row')).toHaveLength(3)
     expect(wrapper.findAll('.handle')).toHaveLength(33)
     expect(wrapper.text()).toContain('brand-500')
+    wrapper.unmount()
+  })
+
+  it('supports application undo and redo shortcuts without hijacking text fields', async () => {
+    seedColor.value = '#F7F6F4'
+    generate()
+    const wrapper = mount(App)
+    const originalChroma = shades.value![500].c
+    commitPalette(
+      { ...shades.value!, 500: { ...shades.value![500], c: originalChroma * 0.5 } },
+      'Test keyboard history',
+    )
+
+    expect(canUndo.value).toBe(true)
+    const committedIndex = historyIndex.value
+    const undoEvent = new KeyboardEvent('keydown', {
+      key: 'z',
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    })
+    window.dispatchEvent(undoEvent)
+    await wrapper.vm.$nextTick()
+    expect(undoEvent.defaultPrevented).toBe(true)
+    expect(historyIndex.value).toBe(committedIndex - 1)
+    expect(shades.value![500].c).toBe(originalChroma)
+    expect(canRedo.value).toBe(true)
+
+    const redoEvent = new KeyboardEvent('keydown', {
+      key: 'z',
+      metaKey: true,
+      shiftKey: true,
+      bubbles: true,
+      cancelable: true,
+    })
+    window.dispatchEvent(redoEvent)
+    await wrapper.vm.$nextTick()
+    expect(redoEvent.defaultPrevented).toBe(true)
+    expect(historyIndex.value).toBe(committedIndex)
+    expect(shades.value![500].c).toBe(originalChroma * 0.5)
+
+    const seedInput = wrapper.get('#seed')
+    const inputUndoEvent = new KeyboardEvent('keydown', {
+      key: 'z',
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    })
+    seedInput.element.dispatchEvent(inputUndoEvent)
+    expect(inputUndoEvent.defaultPrevented).toBe(false)
+    expect(historyIndex.value).toBe(committedIndex)
+    wrapper.unmount()
   })
 })

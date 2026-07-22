@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import type { Channel } from '@/app/channels'
+import { OVERLAY_DASH, trianglePoints } from '@/app/overlay-style'
 import {
   activeOverlays,
   baselineVisible,
@@ -9,12 +10,18 @@ import {
   effectiveShades,
   endContinuousEdit,
   generatedShades,
+  previewShades,
+  proportionalRadius,
+  protectAnchor,
+  replaceShades,
+  resolvedAnchor,
   selectedShade,
   setShadeColor,
+  shades,
   visibleChannels,
   type ActiveOverlay,
-  type OverlayLine,
 } from '@/app/palette-store'
+import { clonePalette, falloffWeight, proportionalAdjust } from '@/app/palette-tools'
 import { SHADE_NAMES, type OklchColor, type Shade } from '@/types'
 
 const PAD_TOP = 28
@@ -84,6 +91,10 @@ const baselineCurves = computed(() =>
     ? buildCurves(generatedShades.value)
     : [],
 )
+// While a transform preview is active, keep the pre-preview curve visible for comparison.
+const previewBaseCurves = computed(() =>
+  previewShades.value && shades.value && size.value.width ? buildCurves(shades.value) : [],
+)
 const overlayCurves = computed<OverlayCurve[]>(() =>
   size.value.width
     ? activeOverlays.value.flatMap((overlay) =>
@@ -92,42 +103,112 @@ const overlayCurves = computed<OverlayCurve[]>(() =>
     : [],
 )
 
-const dashPattern: Record<OverlayLine, string> = {
-  dash: '7 5',
-  dot: '2 5',
-  'dash-dot': '10 4 2 4',
-  'long-dash': '14 7',
-}
-
 function channelColor(key: string): string {
   if (key === 'h') return '#f291d1'
   if (key === 'c' || key === 's') return '#ffc167'
   return '#69d7ff'
 }
 
-function trianglePoints(point: CurvePoint): string {
-  return `${point.x},${point.y - 4.5} ${point.x - 4.2},${point.y + 3.5} ${point.x + 4.2},${point.y + 3.5}`
+function labelY(curve: Curve): number {
+  return Math.min(Math.max(curve.points[0].y + 4, 16), size.value.height - PAD_BOTTOM - 8)
 }
 
-let drag: { channel: Channel; shade: Shade } | null = null
+interface DragState {
+  channel: Channel
+  shade: Shade
+  proportional: boolean
+  startPalette: Record<Shade, OklchColor>
+  lastValue: number
+}
+
+const drag = ref<DragState | null>(null)
+
+const dragPoint = computed(() => {
+  const active = drag.value
+  if (!active) return null
+  const curve = curves.value.find((candidate) => candidate.channel.key === active.channel.key)
+  const point = curve?.points.find((candidate) => candidate.shade === active.shade)
+  if (!point) return null
+  const radius = active.proportional ? ` · ±${proportionalRadius.value}` : ''
+  return { ...point, label: `${active.channel.format(point.value)}${radius}` }
+})
+
+// Strips touched by the active proportional drag, for the highlight veil.
+const affectedStrips = computed(() => {
+  const active = drag.value
+  if (!active?.proportional || !size.value.width) return []
+  const center = SHADE_NAMES.indexOf(active.shade)
+  return SHADE_NAMES.flatMap((shade, index) => {
+    const weight = falloffWeight(Math.abs(index - center), proportionalRadius.value)
+    return weight > 0 ? [{ shade, index, weight }] : []
+  })
+})
+
+const pinnedShade = computed(() => (protectAnchor.value ? resolvedAnchor.value : null))
+
+function applyDrag(): void {
+  const active = drag.value
+  if (!active) return
+  if (active.proportional) {
+    replaceShades(
+      proportionalAdjust(active.startPalette, {
+        channel: active.channel,
+        shade: active.shade,
+        value: active.lastValue,
+        radius: proportionalRadius.value,
+        anchor: resolvedAnchor.value,
+        protectAnchor: protectAnchor.value,
+      }),
+    )
+  } else {
+    setShadeColor(
+      active.shade,
+      active.channel.set(active.startPalette[active.shade], active.lastValue),
+    )
+  }
+}
 
 function onPointerDown(event: PointerEvent, channel: Channel, shade: Shade): void {
-  drag = { channel, shade }
   selectedShade.value = shade
   beginContinuousEdit()
+  if (!shades.value) return
+  drag.value = {
+    channel,
+    shade,
+    proportional: event.shiftKey,
+    startPalette: clonePalette(shades.value),
+    lastValue: channel.get(shades.value[shade]),
+  }
   ;(event.currentTarget as Element).setPointerCapture(event.pointerId)
 }
 
 function onPointerMove(event: PointerEvent): void {
-  if (!drag || !container.value || !effectiveShades.value) return
+  const active = drag.value
+  if (!active || !container.value) return
   const rect = container.value.getBoundingClientRect()
-  const value = valueAt(drag.channel, event.clientY - rect.top)
-  setShadeColor(drag.shade, drag.channel.set(effectiveShades.value[drag.shade], value))
+  active.lastValue = valueAt(active.channel, event.clientY - rect.top)
+  applyDrag()
 }
 
 function onPointerUp(): void {
-  if (drag) endContinuousEdit(`Adjusted ${drag.channel.label} at ${drag.shade}`)
-  drag = null
+  const active = drag.value
+  if (active) {
+    endContinuousEdit(
+      active.proportional
+        ? `Scaled ${active.channel.label} region around ${active.shade}`
+        : `Adjusted ${active.channel.label} at ${active.shade}`,
+    )
+  }
+  drag.value = null
+}
+
+function onWheel(event: WheelEvent): void {
+  const active = drag.value
+  if (!active?.proportional) return
+  event.preventDefault()
+  const step = event.deltaY > 0 ? -1 : 1
+  proportionalRadius.value = Math.min(5, Math.max(0, proportionalRadius.value + step))
+  applyDrag()
 }
 
 function onHandleKeydown(event: KeyboardEvent, channel: Channel, point: CurvePoint): void {
@@ -152,7 +233,7 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
 </script>
 
 <template>
-  <div ref="container" class="editor">
+  <div ref="container" class="editor" @wheel="onWheel">
     <div class="strips">
       <button
         v-for="entry in displayShades"
@@ -169,6 +250,17 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
     </div>
 
     <svg v-if="size.width" class="overlay" :width="size.width" :height="size.height">
+      <rect
+        v-for="strip in affectedStrips"
+        :key="`affected-${strip.shade}`"
+        class="affected"
+        :x="(strip.index * size.width) / SHADE_NAMES.length"
+        y="0"
+        :width="size.width / SHADE_NAMES.length"
+        :height="size.height"
+        :fill-opacity="0.12 * strip.weight"
+      />
+
       <g v-for="curve in baselineCurves" :key="`baseline-${curve.channel.key}`" class="baseline">
         <polyline :points="curve.polyline" />
         <circle
@@ -186,7 +278,7 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
         class="reference"
         :style="{ color: curve.overlay.color, opacity: curve.overlay.opacity }"
       >
-        <polyline :points="curve.polyline" :stroke-dasharray="dashPattern[curve.overlay.line]" />
+        <polyline :points="curve.polyline" :stroke-dasharray="OVERLAY_DASH[curve.overlay.line]" />
         <template v-for="point in curve.points" :key="point.shade">
           <circle v-if="curve.overlay.marker === 'circle'" :cx="point.x" :cy="point.y" r="3.5" />
           <rect
@@ -204,12 +296,21 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
             height="6.4"
             :transform="`rotate(45 ${point.x} ${point.y})`"
           />
-          <polygon v-else :points="trianglePoints(point)" />
+          <polygon v-else :points="trianglePoints(point.x, point.y, 4.4)" />
         </template>
       </g>
 
+      <g
+        v-for="curve in previewBaseCurves"
+        :key="`preview-base-${curve.channel.key}`"
+        class="preview-base"
+        :style="{ color: channelColor(curve.channel.key) }"
+      >
+        <polyline :points="curve.polyline" />
+      </g>
+
       <g v-for="curve in curves" :key="curve.channel.key">
-        <text class="curve-label" :x="curve.points[0].x - 18" :y="curve.points[0].y + 4">
+        <text class="curve-label" :x="curve.points[0].x - 18" :y="labelY(curve)">
           {{ curve.channel.label }}
         </text>
         <polyline class="halo" :points="curve.polyline" />
@@ -218,6 +319,15 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
           :points="curve.polyline"
           :style="{ stroke: channelColor(curve.channel.key) }"
         />
+        <template v-for="point in curve.points" :key="`pin-${point.shade}`">
+          <circle
+            v-if="point.shade === pinnedShade"
+            class="pin-ring"
+            :cx="point.x"
+            :cy="point.y"
+            r="11"
+          />
+        </template>
         <circle
           v-for="point in curve.points"
           :key="point.shade"
@@ -239,6 +349,16 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
           @pointercancel="onPointerUp"
         />
       </g>
+
+      <text
+        v-if="dragPoint"
+        class="drag-value"
+        :x="dragPoint.x"
+        :y="Math.max(dragPoint.y - 14, 14)"
+        text-anchor="middle"
+      >
+        {{ dragPoint.label }}
+      </text>
     </svg>
   </div>
 </template>
@@ -315,6 +435,29 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
   fill: #15161a;
   stroke: currentColor;
   stroke-width: 1.5;
+}
+.preview-base polyline {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  opacity: 0.32;
+}
+.affected {
+  fill: #fff;
+}
+.pin-ring {
+  fill: none;
+  stroke: rgb(255 255 255 / 70%);
+  stroke-width: 1.3;
+  stroke-dasharray: 2.5 3;
+}
+.drag-value {
+  font-size: 11px;
+  font-weight: 650;
+  fill: #f4f4f6;
+  paint-order: stroke;
+  stroke: rgb(8 9 12 / 85%);
+  stroke-width: 3px;
 }
 .halo {
   fill: none;

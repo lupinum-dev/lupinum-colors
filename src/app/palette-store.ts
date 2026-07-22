@@ -62,6 +62,8 @@ export const huePath = ref('balanced')
 export const channelMode = ref<ChannelMode>('oklch')
 export const hiddenChannels = ref<string[]>([])
 export const selectedShade = ref<Shade>(500)
+export const protectAnchor = ref(true)
+export const proportionalRadius = ref(2)
 export const generationError = ref<string | null>(null)
 export const lastResult = ref<PaletteResult | null>(null)
 export const baselineVisible = ref(false)
@@ -79,6 +81,9 @@ let continuousEditStart: Record<Shade, OklchColor> | null = null
 export const referenceFamilies = loadTailwindFamilies()
 
 export const effectiveShades = computed(() => previewShades.value ?? shades.value)
+export const resolvedAnchor = computed<Shade>(() =>
+  anchor.value === 'auto' ? (lastResult.value?.configuration.anchor ?? 500) : anchor.value,
+)
 export const canUndo = computed(() => historyIndex.value > 0)
 export const canRedo = computed(
   () => historyIndex.value >= 0 && historyIndex.value < history.value.length - 1,
@@ -124,6 +129,12 @@ export function setShadeColor(shade: Shade, color: OklchColor): void {
   if (!shades.value) return
   clearPreview()
   shades.value = { ...shades.value, [shade]: color }
+}
+
+export function replaceShades(palette: Record<Shade, OklchColor>): void {
+  if (!shades.value) return
+  clearPreview()
+  shades.value = clonePalette(palette)
 }
 
 export function beginContinuousEdit(): void {
