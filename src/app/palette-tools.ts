@@ -41,6 +41,7 @@ export interface SmoothOptions extends ScopeOptions {
   anchor: Shade
   protectAnchor: boolean
   protectEndpoints: boolean
+  protectScopeEndpoints?: boolean
 }
 
 export interface ReferenceRank {
@@ -173,6 +174,7 @@ export function smoothChannel(
   const values = options.channel.key === 'h' ? unwrapHue(original) : [...original]
   const passes = Math.max(1, Math.ceil(clamp(options.strength, 0, 1) * 4))
   const blend = clamp(options.strength * 1.25, 0, 1)
+  const [scopeStart, scopeEnd] = scopeBounds(options)
   let working = [...values]
 
   for (let pass = 0; pass < passes; pass += 1) {
@@ -181,7 +183,8 @@ export function smoothChannel(
       const shade = SHADE_NAMES[index]
       if (
         (options.protectAnchor && shade === options.anchor) ||
-        (options.protectEndpoints && (index === 0 || index === working.length - 1))
+        (options.protectEndpoints && (index === 0 || index === working.length - 1)) ||
+        (options.protectScopeEndpoints && (index === scopeStart || index === scopeEnd))
       )
         continue
       const weight = scopeWeight(shade, options)
@@ -195,7 +198,8 @@ export function smoothChannel(
   for (const [index, shade] of SHADE_NAMES.entries()) {
     if (
       (options.protectAnchor && shade === options.anchor) ||
-      (options.protectEndpoints && (index === 0 || index === SHADE_NAMES.length - 1))
+      (options.protectEndpoints && (index === 0 || index === SHADE_NAMES.length - 1)) ||
+      (options.protectScopeEndpoints && (index === scopeStart || index === scopeEnd))
     )
       continue
     const weight = scopeWeight(shade, options)
@@ -206,52 +210,59 @@ export function smoothChannel(
   return result
 }
 
-export interface ProportionalOptions {
+export interface SelectionCurveOptions {
   channel: Channel
-  shade: Shade
-  value: number
-  radius: number
+  from: Shade
+  to: Shade
+  startDelta: number
+  curveDelta: number
+  endDelta: number
+  feather: number
   anchor: Shade
   protectAnchor: boolean
 }
 
-// Soft falloff for proportional editing: 1 at the dragged shade, fading to 0
-// just beyond `radius` shade steps.
-export function falloffWeight(distance: number, radius: number): number {
-  if (distance === 0) return 1
-  if (distance > radius) return 0
-  return smoothstep(0, 1, 1 - distance / (radius + 1))
-}
-
-// Move one shade's channel to `value` and carry neighbors along with falloff.
-// Ratio channels (chroma, saturation) scale multiplicatively so the curve keeps
-// its shape; other channels follow additively; hue follows the short way around.
-export function proportionalAdjust(
+// Adjust a contiguous range with a stable three-control curve. The start and end
+// controls are exact; curveDelta is the midpoint's deviation from their line.
+export function adjustSelectionCurve(
   palette: Record<Shade, OklchColor>,
-  options: ProportionalOptions,
+  options: SelectionCurveOptions,
 ): Record<Shade, OklchColor> {
   const result = clonePalette(palette)
-  const channel = options.channel
-  const center = SHADE_NAMES.indexOf(options.shade)
-  const current = channel.get(palette[options.shade])
-  const isHue = channel.key === 'h'
-  const hueDelta = signedHueDelta(current, options.value)
-  const delta = options.value - current
-  const multiplier =
-    isRatioChannel(channel.key) && Math.abs(current) > 1e-6 ? options.value / current : null
+  const fromIndex = SHADE_NAMES.indexOf(options.from)
+  const toIndex = SHADE_NAMES.indexOf(options.to)
+  const start = Math.min(fromIndex, toIndex)
+  const end = Math.max(fromIndex, toIndex)
+  const span = Math.max(1, end - start)
+  const feather = Math.max(0, Math.round(options.feather))
 
   for (const [index, shade] of SHADE_NAMES.entries()) {
-    const weight = falloffWeight(Math.abs(index - center), options.radius)
-    if (weight <= 0) continue
-    if (options.protectAnchor && shade === options.anchor && shade !== options.shade) continue
-    const valueAtShade = channel.get(palette[shade])
-    let next: number
-    if (isHue) next = valueAtShade + hueDelta * weight
-    else if (multiplier !== null) next = valueAtShade * (1 + (multiplier - 1) * weight)
-    else next = valueAtShade + delta * weight
-    result[shade] = channel.set(result[shade], next)
+    if (options.protectAnchor && shade === options.anchor) continue
+
+    let delta = 0
+    if (index >= start && index <= end) {
+      const t = (index - start) / span
+      delta =
+        lerp(options.startDelta, options.endDelta, t) +
+        4 * t * (1 - t) * options.curveDelta
+    } else if (feather > 0 && index < start && start - index <= feather) {
+      delta = options.startDelta * featherWeight(start - index, feather)
+    } else if (feather > 0 && index > end && index - end <= feather) {
+      delta = options.endDelta * featherWeight(index - end, feather)
+    } else {
+      continue
+    }
+
+    const current = options.channel.get(palette[shade])
+    result[shade] = options.channel.set(result[shade], current + delta)
   }
   return result
+}
+
+export function featherWeight(distance: number, feather: number): number {
+  if (distance <= 0) return 1
+  if (distance > feather || feather <= 0) return 0
+  return smoothstep(0, feather + 1, feather + 1 - distance)
 }
 
 export function scopeWeight(shade: Shade, options: ScopeOptions): number {

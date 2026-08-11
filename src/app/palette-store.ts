@@ -11,7 +11,7 @@ import {
   type Shade,
 } from '@/types'
 import { CHANNEL_MODES, type ChannelMode } from './channels'
-import { clonePalette, rankReferences } from './palette-tools'
+import { adjustSelectionCurve, clonePalette, rankReferences } from './palette-tools'
 
 export interface DisplayShade {
   shade: Shade
@@ -46,6 +46,17 @@ export interface HistoryEntry {
   palette: Record<Shade, OklchColor>
 }
 
+export interface ShadeSelection {
+  from: Shade
+  to: Shade
+}
+
+export interface SelectionCurve {
+  startDelta: number
+  curveDelta: number
+  endDelta: number
+}
+
 const OVERLAY_COLORS = ['#f4c45e', '#67d5ff', '#f18ac2', '#a7df78']
 const OVERLAY_LINES: OverlayLine[] = ['dash', 'dash-dot', 'dot', 'long-dash']
 const OVERLAY_MARKERS: OverlayMarker[] = ['diamond', 'square', 'triangle', 'circle']
@@ -63,7 +74,14 @@ export const channelMode = ref<ChannelMode>('oklch')
 export const hiddenChannels = ref<string[]>([])
 export const selectedShade = ref<Shade>(500)
 export const protectAnchor = ref(true)
-export const proportionalRadius = ref(2)
+export const shadeSelection = ref<ShadeSelection | null>(null)
+export const selectionChannelKey = ref('c')
+export const selectionFeather = ref(1)
+export const selectionCurve = ref<SelectionCurve>({
+  startDelta: 0,
+  curveDelta: 0,
+  endDelta: 0,
+})
 export const generationError = ref<string | null>(null)
 export const lastResult = ref<PaletteResult | null>(null)
 export const baselineVisible = ref(false)
@@ -84,6 +102,16 @@ export const effectiveShades = computed(() => previewShades.value ?? shades.valu
 export const resolvedAnchor = computed<Shade>(() =>
   anchor.value === 'auto' ? (lastResult.value?.configuration.anchor ?? 500) : anchor.value,
 )
+export const selectedShadeRange = computed<Shade[]>(() => {
+  if (!shadeSelection.value) return []
+  const from = SHADE_NAMES.indexOf(shadeSelection.value.from)
+  const to = SHADE_NAMES.indexOf(shadeSelection.value.to)
+  return SHADE_NAMES.slice(Math.min(from, to), Math.max(from, to) + 1)
+})
+export const selectionChannel = computed(() => {
+  const channels = CHANNEL_MODES[channelMode.value]
+  return channels.find((channel) => channel.key === selectionChannelKey.value) ?? channels[0]
+})
 export const canUndo = computed(() => historyIndex.value > 0)
 export const canRedo = computed(
   () => historyIndex.value >= 0 && historyIndex.value < history.value.length - 1,
@@ -110,6 +138,8 @@ export function generate(): void {
     previewLabel.value = null
     history.value = [{ label: 'Generated palette', palette: clonePalette(generated) }]
     historyIndex.value = 0
+    shadeSelection.value = null
+    resetSelectionCurve(false)
     initializeOverlays(generated, result.reference.kind)
   } catch (error) {
     generationError.value = error instanceof Error ? error.message : String(error)
@@ -135,6 +165,81 @@ export function replaceShades(palette: Record<Shade, OklchColor>): void {
   if (!shades.value) return
   clearPreview()
   shades.value = clonePalette(palette)
+}
+
+export function setShadeSelection(from: Shade, to: Shade = from): void {
+  const fromIndex = SHADE_NAMES.indexOf(from)
+  const toIndex = SHADE_NAMES.indexOf(to)
+  shadeSelection.value = {
+    from: SHADE_NAMES[Math.min(fromIndex, toIndex)],
+    to: SHADE_NAMES[Math.max(fromIndex, toIndex)],
+  }
+  selectedShade.value = to
+  resetSelectionCurve()
+}
+
+export function clearShadeSelection(): void {
+  shadeSelection.value = null
+  resetSelectionCurve()
+}
+
+export function setSelectionChannel(key: string): void {
+  if (selectionChannelKey.value === key) return
+  selectionChannelKey.value = key
+  resetSelectionCurve()
+}
+
+export function setSelectionFeather(value: number): void {
+  selectionFeather.value = Math.min(3, Math.max(0, Math.round(value)))
+  refreshSelectionCurvePreview()
+}
+
+export function updateSelectionCurve(update: Partial<SelectionCurve>): void {
+  selectionCurve.value = { ...selectionCurve.value, ...update }
+  refreshSelectionCurvePreview()
+}
+
+export function resetSelectionCurve(clear = true): void {
+  selectionCurve.value = { startDelta: 0, curveDelta: 0, endDelta: 0 }
+  if (clear) clearPreview()
+}
+
+export function refreshSelectionCurvePreview(): void {
+  const selection = shadeSelection.value
+  const channel = selectionChannel.value
+  if (!selection || !channel || !shades.value) return
+  const curve = selectionCurve.value
+  const changed = Math.max(
+    Math.abs(curve.startDelta),
+    Math.abs(curve.curveDelta),
+    Math.abs(curve.endDelta),
+  )
+  if (changed < 1e-10) {
+    clearPreview()
+    return
+  }
+  setPreview(
+    adjustSelectionCurve(shades.value, {
+      channel,
+      from: selection.from,
+      to: selection.to,
+      ...curve,
+      feather: selectionFeather.value,
+      anchor: resolvedAnchor.value,
+      protectAnchor: protectAnchor.value,
+    }),
+    `Shaped ${channel.label} across ${selection.from}–${selection.to}`,
+  )
+}
+
+export function applySelectionPreview(): void {
+  applyPreview()
+  resetSelectionCurve(false)
+}
+
+export function cancelSelectionPreview(): void {
+  clearPreview()
+  resetSelectionCurve(false)
 }
 
 export function beginContinuousEdit(): void {
