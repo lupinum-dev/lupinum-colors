@@ -1,4 +1,14 @@
 <script setup lang="ts">
+import {
+  CheckIcon,
+  ClipboardIcon,
+  Redo2Icon,
+  RotateCcwIcon,
+  SlidersHorizontalIcon,
+  TriangleAlertIcon,
+  Undo2Icon,
+  WandSparklesIcon,
+} from '@lucide/vue'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { CHANNEL_MODES, type ChannelMode } from '@/app/channels'
 import { formatExport, type ExportFormat } from '@/app/format'
@@ -32,6 +42,25 @@ import {
 } from '@/app/palette-store'
 import PaletteEditor from '@/components/PaletteEditor.vue'
 import PaletteInspector from '@/components/PaletteInspector.vue'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
+import { Kbd, KbdGroup } from '@/components/ui/kbd'
+import { Label } from '@/components/ui/label'
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import { SHADE_NAMES, formatOklch } from '@/index'
 
 const MODES: ChannelMode[] = ['oklch', 'hsv', 'hsl']
@@ -41,6 +70,30 @@ if (!lastResult.value) generate()
 const selectedEntry = computed(() =>
   displayShades.value.find((entry) => entry.shade === selectedShade.value),
 )
+const visibleChannelKeys = computed(() =>
+  CHANNEL_MODES[channelMode.value]
+    .filter((channel) => !hiddenChannels.value.includes(channel.key))
+    .map((channel) => channel.key),
+)
+
+function selectChannelMode(value: unknown): void {
+  if (typeof value === 'string' && MODES.includes(value as ChannelMode)) {
+    channelMode.value = value as ChannelMode
+  }
+}
+
+function selectVisibleChannels(value: unknown): void {
+  if (!Array.isArray(value)) return
+  const selected = new Set(value.filter((key): key is string => typeof key === 'string'))
+  for (const channel of CHANNEL_MODES[channelMode.value]) {
+    const isVisible = !hiddenChannels.value.includes(channel.key)
+    if (selected.has(channel.key) !== isVisible) toggleChannel(channel.key)
+  }
+}
+
+function selectExportFormat(value: unknown): void {
+  if (value === 'tailwind' || value === 'css' || value === 'json') exportFormat.value = value
+}
 
 function channelInput(event: Event, channelLabel: string, set: (value: number) => void): void {
   const value = Number((event.target as HTMLInputElement).value)
@@ -100,584 +153,312 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
 </script>
 
 <template>
-  <main class="page">
-    <header class="masthead">
-      <div class="title-block">
-        <span class="eyebrow">OKLCH / PALETTE LAB</span>
-        <h1>Tailwind shade generator</h1>
-      </div>
-      <div class="history-actions">
-        <button
-          type="button"
-          :disabled="!canUndo"
-          title="Undo (Ctrl/⌘ Z)"
-          aria-keyshortcuts="Control+Z Meta+Z"
-          @click="undo"
+  <TooltipProvider>
+    <main class="min-h-screen bg-background text-foreground">
+      <header
+        class="sticky top-0 z-20 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
+      >
+        <div
+          class="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-4 py-3 sm:px-6"
         >
-          ↶ Undo <kbd>Ctrl/⌘ Z</kbd>
-        </button>
-        <button
-          type="button"
-          :disabled="!canRedo"
-          title="Redo (Ctrl/⌘ Shift+Z or Ctrl/⌘ Y)"
-          aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y Meta+Y"
-          @click="redo"
-        >
-          ↷ Redo <kbd>⇧ Ctrl/⌘ Z</kbd>
-        </button>
-        <button type="button" @click="resetToGenerated">Reset</button>
-      </div>
-    </header>
-
-    <section class="generation-bar" aria-label="Palette generation">
-      <div class="field name-field">
-        <label for="name">Token name</label>
-        <input id="name" v-model="paletteName" spellcheck="false" />
-      </div>
-      <div class="field seed-field">
-        <label for="seed">Seed color · hex, rgb, hsl or oklch</label>
-        <div class="seed">
-          <span
-            class="seed-preview"
-            :style="{ background: displayShades[5]?.css ?? seedColor }"
-          ></span>
-          <input
-            id="seed"
-            v-model="seedColor"
-            spellcheck="false"
-            placeholder="#89E5D2 or oklch(86% 0.08 174)"
-            @keydown.enter="generate"
-          />
+          <div class="min-w-0">
+            <p
+              class="font-mono text-[10px] font-medium tracking-[0.16em] text-muted-foreground uppercase"
+            >
+              OKLCH · Palette lab
+            </p>
+            <h1 class="truncate text-lg font-semibold tracking-tight">Tailwind shade generator</h1>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <Button variant="ghost" size="sm" :disabled="!canUndo" title="Undo" @click="undo">
+              <Undo2Icon data-icon="inline-start" />
+              <span class="hidden sm:inline">Undo</span>
+              <KbdGroup class="hidden lg:flex"><Kbd>⌘</Kbd><Kbd>Z</Kbd></KbdGroup>
+            </Button>
+            <Button variant="ghost" size="sm" :disabled="!canRedo" title="Redo" @click="redo">
+              <Redo2Icon data-icon="inline-start" />
+              <span class="hidden sm:inline">Redo</span>
+            </Button>
+            <Button variant="outline" size="sm" @click="resetToGenerated">
+              <RotateCcwIcon data-icon="inline-start" />
+              Reset
+            </Button>
+          </div>
         </div>
-      </div>
-      <div class="field compact-field">
-        <label for="seed-mode">Seed behavior</label>
-        <select id="seed-mode" v-model="seedMode">
-          <option value="exact">preserve exact</option>
-          <option value="canonical">fit canonical</option>
-        </select>
-      </div>
-      <div class="field compact-field">
-        <label for="anchor">Anchor shade</label>
-        <select id="anchor" v-model="anchor">
-          <option value="auto">auto</option>
-          <option v-for="shade in SHADE_NAMES" :key="shade" :value="shade">{{ shade }}</option>
-        </select>
-      </div>
-      <div class="field compact-field">
-        <label for="hue-path">Hue path</label>
-        <select id="hue-path" v-model="huePath">
-          <option v-for="option in huePathOptions" :key="option" :value="option">
-            {{ option }}
-          </option>
-        </select>
-      </div>
-      <div class="field compact-field">
-        <label for="gamut">Output gamut</label>
-        <select id="gamut" v-model="gamut">
-          <option value="srgb">sRGB</option>
-          <option value="display-p3">Display P3</option>
-          <option value="none">Unbounded</option>
-        </select>
-      </div>
-      <button type="button" class="primary generate" @click="generate">Generate</button>
-    </section>
+      </header>
 
-    <p v-if="generationError" class="error" role="alert">{{ generationError }}</p>
-
-    <div class="view-bar">
-      <div class="chips" role="group" aria-label="Channel mode">
-        <button
-          v-for="mode in MODES"
-          :key="mode"
-          type="button"
-          class="chip"
-          :class="{ active: channelMode === mode }"
-          @click="channelMode = mode"
-        >
-          {{ mode.toUpperCase() }}
-        </button>
-      </div>
-      <div class="channel-toggles" role="group" aria-label="Visible channels">
-        <button
-          v-for="channel in CHANNEL_MODES[channelMode]"
-          :key="channel.key"
-          type="button"
-          :class="{
-            active: !hiddenChannels.includes(channel.key),
-            [`channel-${channel.key}`]: true,
-          }"
-          @click="toggleChannel(channel.key)"
-        >
-          <span></span>{{ channel.label }}
-        </button>
-      </div>
-      <label class="baseline-toggle">
-        <input v-model="baselineVisible" type="checkbox" /> Generated baseline
-      </label>
-      <span v-if="lastResult" class="meta result-meta">
-        {{ lastResult.reference.kind }} · anchor {{ lastResult.configuration.anchor
-        }}{{ lastResult.configuration.anchorWasInferred ? ' auto' : '' }} ·
-        {{ lastResult.reference.neighbors.join(' ↔ ') }}
-      </span>
-    </div>
-
-    <div class="workspace">
-      <div class="canvas-column">
-        <PaletteEditor />
-        <p class="gesture-hint">
-          Drag a point to edit one shade · ⇧-drag to scale its region (scroll sets the radius) ·
-          arrow keys nudge the focused point
-        </p>
-
-        <ul v-if="warnings.length" class="warnings">
-          <li v-for="warning in warnings" :key="warning">{{ warning }}</li>
-        </ul>
-
-        <section v-if="selectedEntry && effectiveShades" class="panel selected-panel">
-          <div class="panel-heading">
+      <div class="mx-auto flex max-w-[1600px] flex-col gap-4 px-4 py-4 sm:px-6 sm:py-6">
+        <Card size="sm">
+          <CardHeader class="border-b">
             <div>
-              <span class="eyebrow">SELECTED SHADE</span>
-              <h2>{{ paletteName }}-{{ selectedEntry.shade }}</h2>
-            </div>
-            <div class="value-pair">
-              <code>{{ selectedEntry.hex }}</code
-              ><code>{{ formatOklch(selectedEntry.raw) }}</code>
-            </div>
-          </div>
-          <div class="details">
-            <div v-for="channel in CHANNEL_MODES[channelMode]" :key="channel.key" class="field">
-              <label :for="`channel-${channel.key}`">{{ channel.label }}</label>
-              <input
-                :id="`channel-${channel.key}`"
-                type="number"
-                :min="channel.min"
-                :max="channel.max"
-                :step="channel.step"
-                :value="Number(channel.get(selectedEntry.raw).toFixed(4))"
-                @change="
-                  channelInput($event, channel.label, (value) =>
-                    setShadeColor(
-                      selectedEntry!.shade,
-                      channel.set(effectiveShades![selectedEntry!.shade], value),
-                    ),
-                  )
-                "
-              />
-            </div>
-            <div class="contrast">
-              <span
-                >WHITE <b>{{ selectedEntry.contrastOnWhite.toFixed(2) }}</b>
-                {{ contrastBadge(selectedEntry.contrastOnWhite) }}</span
+              <CardTitle>Generate palette</CardTitle>
+              <CardDescription
+                >Start from any CSS color, then refine the generated curve.</CardDescription
               >
-              <span
-                >BLACK <b>{{ selectedEntry.contrastOnBlack.toFixed(2) }}</b>
-                {{ contrastBadge(selectedEntry.contrastOnBlack) }}</span
-              >
-              <span v-if="!selectedEntry.inGamut" class="mapped">GAMUT-MAPPED</span>
             </div>
-          </div>
-        </section>
-      </div>
-
-      <PaletteInspector />
-    </div>
-
-    <section class="panel export-panel">
-      <div class="export-head">
-        <div>
-          <span class="eyebrow">OUTPUT</span>
-          <h2>Production tokens</h2>
-        </div>
-        <div class="chips">
-          <button
-            v-for="format in ['tailwind', 'css', 'json'] as const"
-            :key="format"
-            type="button"
-            class="chip"
-            :class="{ active: exportFormat === format }"
-            @click="exportFormat = format"
+            <CardAction>
+              <Badge
+                v-if="lastResult"
+                variant="outline"
+                class="hidden font-mono text-[10px] sm:inline-flex"
+              >
+                {{ lastResult.reference.kind }} · anchor {{ lastResult.configuration.anchor }}
+              </Badge>
+            </CardAction>
+          </CardHeader>
+          <CardContent
+            class="grid gap-4 pt-4 md:grid-cols-2 xl:grid-cols-[0.75fr_2fr_repeat(4,1fr)_auto] xl:items-end"
           >
-            {{ format }}
-          </button>
+            <div class="grid gap-2">
+              <Label for="name">Token name</Label>
+              <Input id="name" v-model="paletteName" spellcheck="false" />
+            </div>
+            <div class="grid gap-2">
+              <Label for="seed">Seed color</Label>
+              <div class="flex items-center gap-2">
+                <span
+                  class="size-9 shrink-0 rounded-md border shadow-xs"
+                  :style="{ background: displayShades[5]?.css ?? seedColor }"
+                  aria-hidden="true"
+                />
+                <Input
+                  id="seed"
+                  v-model="seedColor"
+                  class="font-mono"
+                  spellcheck="false"
+                  placeholder="#89E5D2 or oklch(86% 0.08 174)"
+                  @keydown.enter="generate"
+                />
+              </div>
+            </div>
+            <div class="grid gap-2">
+              <Label for="seed-mode">Seed behavior</Label>
+              <NativeSelect id="seed-mode" v-model="seedMode" class="w-full">
+                <NativeSelectOption value="exact">Preserve exact</NativeSelectOption>
+                <NativeSelectOption value="canonical">Fit canonical</NativeSelectOption>
+              </NativeSelect>
+            </div>
+            <div class="grid gap-2">
+              <Label for="anchor">Anchor shade</Label>
+              <NativeSelect id="anchor" v-model="anchor" class="w-full">
+                <NativeSelectOption value="auto">Auto</NativeSelectOption>
+                <NativeSelectOption v-for="shade in SHADE_NAMES" :key="shade" :value="shade">
+                  {{ shade }}
+                </NativeSelectOption>
+              </NativeSelect>
+            </div>
+            <div class="grid gap-2">
+              <Label for="hue-path">Hue path</Label>
+              <NativeSelect id="hue-path" v-model="huePath" class="w-full">
+                <NativeSelectOption v-for="option in huePathOptions" :key="option" :value="option">
+                  {{ option }}
+                </NativeSelectOption>
+              </NativeSelect>
+            </div>
+            <div class="grid gap-2">
+              <Label for="gamut">Output gamut</Label>
+              <NativeSelect id="gamut" v-model="gamut" class="w-full">
+                <NativeSelectOption value="srgb">sRGB</NativeSelectOption>
+                <NativeSelectOption value="display-p3">Display P3</NativeSelectOption>
+                <NativeSelectOption value="none">Unbounded</NativeSelectOption>
+              </NativeSelect>
+            </div>
+            <Button class="generate w-full xl:w-auto" @click="generate">
+              <WandSparklesIcon data-icon="inline-start" />
+              Generate
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Alert v-if="generationError" variant="destructive">
+          <TriangleAlertIcon />
+          <AlertTitle>Could not generate this palette</AlertTitle>
+          <AlertDescription>{{ generationError }}</AlertDescription>
+        </Alert>
+
+        <section
+          class="flex flex-wrap items-center gap-3 rounded-lg border bg-card p-2 shadow-xs"
+          aria-label="Editor view"
+        >
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            size="sm"
+            :model-value="channelMode"
+            @update:model-value="selectChannelMode"
+          >
+            <ToggleGroupItem v-for="mode in MODES" :key="mode" :value="mode">
+              {{ mode.toUpperCase() }}
+            </ToggleGroupItem>
+          </ToggleGroup>
+
+          <div class="h-6 w-px bg-border" aria-hidden="true" />
+
+          <ToggleGroup
+            type="multiple"
+            variant="outline"
+            size="sm"
+            :model-value="visibleChannelKeys"
+            @update:model-value="selectVisibleChannels"
+          >
+            <ToggleGroupItem
+              v-for="channel in CHANNEL_MODES[channelMode]"
+              :key="channel.key"
+              :value="channel.key"
+              :aria-label="`Toggle ${channel.label}`"
+            >
+              <span
+                class="size-2 rounded-full"
+                :class="{
+                  'bg-pink-400': channel.key === 'h',
+                  'bg-amber-300': channel.key === 'c' || channel.key === 's',
+                  'bg-sky-300': channel.key === 'l' || channel.key === 'v',
+                }"
+              />
+              {{ channel.label }}
+            </ToggleGroupItem>
+          </ToggleGroup>
+
+          <label class="flex cursor-pointer items-center gap-2 px-1 text-sm text-muted-foreground">
+            <Checkbox v-model="baselineVisible" />
+            Generated baseline
+          </label>
+
+          <p
+            v-if="lastResult"
+            class="ml-auto hidden font-mono text-[10px] text-muted-foreground 2xl:block"
+          >
+            {{ lastResult.reference.neighbors.join(' ↔ ') }}
+          </p>
+        </section>
+
+        <div class="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
+          <div class="flex min-w-0 flex-col gap-4">
+            <PaletteEditor />
+            <p class="flex items-center gap-2 px-1 text-xs text-muted-foreground">
+              <SlidersHorizontalIcon class="size-3.5" />
+              Drag a point to edit one shade · Shift-drag scales its region · scroll changes the
+              radius
+            </p>
+
+            <Alert
+              v-if="warnings.length"
+              class="border-amber-500/30 text-amber-200 [&>svg]:text-amber-300"
+            >
+              <TriangleAlertIcon />
+              <AlertTitle>Palette warnings</AlertTitle>
+              <AlertDescription>
+                <ul class="list-disc space-y-1 pl-4">
+                  <li v-for="warning in warnings" :key="warning">{{ warning }}</li>
+                </ul>
+              </AlertDescription>
+            </Alert>
+
+            <Card v-if="selectedEntry && effectiveShades" size="sm">
+              <CardHeader>
+                <div>
+                  <CardDescription class="font-mono text-[10px] tracking-wider uppercase"
+                    >Selected shade</CardDescription
+                  >
+                  <CardTitle>{{ paletteName }}-{{ selectedEntry.shade }}</CardTitle>
+                </div>
+                <CardAction class="flex flex-wrap justify-end gap-2">
+                  <Badge variant="outline" class="font-mono">{{ selectedEntry.hex }}</Badge>
+                  <Badge variant="outline" class="font-mono">{{
+                    formatOklch(selectedEntry.raw)
+                  }}</Badge>
+                </CardAction>
+              </CardHeader>
+              <CardContent class="flex flex-wrap items-end gap-3">
+                <div
+                  v-for="channel in CHANNEL_MODES[channelMode]"
+                  :key="channel.key"
+                  class="grid gap-2"
+                >
+                  <Label :for="`channel-${channel.key}`">{{ channel.label }}</Label>
+                  <Input
+                    :id="`channel-${channel.key}`"
+                    class="w-28 font-mono"
+                    type="number"
+                    :min="channel.min"
+                    :max="channel.max"
+                    :step="channel.step"
+                    :model-value="Number(channel.get(selectedEntry.raw).toFixed(4))"
+                    @change="
+                      channelInput($event, channel.label, (value) =>
+                        setShadeColor(
+                          selectedEntry!.shade,
+                          channel.set(effectiveShades![selectedEntry!.shade], value),
+                        ),
+                      )
+                    "
+                  />
+                </div>
+                <div class="ml-auto flex flex-wrap gap-2">
+                  <Badge variant="secondary" class="font-mono">
+                    White {{ selectedEntry.contrastOnWhite.toFixed(2) }} ·
+                    {{ contrastBadge(selectedEntry.contrastOnWhite) }}
+                  </Badge>
+                  <Badge variant="secondary" class="font-mono">
+                    Black {{ selectedEntry.contrastOnBlack.toFixed(2) }} ·
+                    {{ contrastBadge(selectedEntry.contrastOnBlack) }}
+                  </Badge>
+                  <Badge
+                    v-if="!selectedEntry.inGamut"
+                    variant="outline"
+                    class="border-amber-500/40 text-amber-300"
+                  >
+                    Gamut mapped
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <PaletteInspector />
         </div>
-        <button type="button" @click="copyExport">{{ copied ? 'Copied' : 'Copy output' }}</button>
+
+        <Card size="sm">
+          <CardHeader class="border-b">
+            <div>
+              <CardDescription class="font-mono text-[10px] tracking-wider uppercase"
+                >Output</CardDescription
+              >
+              <CardTitle>Production tokens</CardTitle>
+            </div>
+            <CardAction class="flex items-center gap-2">
+              <ToggleGroup
+                type="single"
+                variant="outline"
+                size="sm"
+                :model-value="exportFormat"
+                @update:model-value="selectExportFormat"
+              >
+                <ToggleGroupItem
+                  v-for="format in ['tailwind', 'css', 'json']"
+                  :key="format"
+                  :value="format"
+                >
+                  {{ format }}
+                </ToggleGroupItem>
+              </ToggleGroup>
+              <Button variant="outline" size="sm" @click="copyExport">
+                <CheckIcon v-if="copied" data-icon="inline-start" />
+                <ClipboardIcon v-else data-icon="inline-start" />
+                {{ copied ? 'Copied' : 'Copy' }}
+              </Button>
+            </CardAction>
+          </CardHeader>
+          <CardContent class="p-0">
+            <ScrollArea class="h-[360px] w-full">
+              <pre class="min-w-max p-4 font-mono text-xs leading-relaxed text-foreground">{{
+                exportText
+              }}</pre>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+          </CardContent>
+        </Card>
       </div>
-      <pre>{{ exportText }}</pre>
-    </section>
-  </main>
+    </main>
+  </TooltipProvider>
 </template>
-
-<style>
-:root {
-  color-scheme: dark;
-}
-* {
-  box-sizing: border-box;
-}
-body {
-  margin: 0;
-  background: #15161a;
-  color: #e6e7eb;
-  font-family:
-    Inter,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    sans-serif;
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-}
-button,
-input,
-select {
-  font: inherit;
-  color: inherit;
-}
-input,
-select,
-button {
-  min-height: 31px;
-  padding: 6px 9px;
-  border: 1px solid #34363f;
-  border-radius: 6px;
-  background: #23242a;
-}
-button {
-  cursor: pointer;
-}
-button:hover:not(:disabled) {
-  border-color: #555965;
-  background: #292b32;
-}
-button:focus-visible,
-input:focus-visible,
-select:focus-visible {
-  outline: 2px solid #7895ff;
-  outline-offset: 2px;
-}
-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.38;
-}
-button.primary {
-  border-color: #5979ef;
-  background: #5979ef;
-  color: #fff;
-  font-weight: 650;
-}
-button.primary:hover:not(:disabled) {
-  border-color: #7390fa;
-  background: #6684f2;
-}
-</style>
-
-<style scoped>
-.page {
-  max-width: 1560px;
-  margin: 0 auto;
-  padding: 20px 24px 52px;
-  display: flex;
-  flex-direction: column;
-  gap: 13px;
-}
-.masthead,
-.generation-bar,
-.view-bar,
-.panel-heading,
-.export-head {
-  display: flex;
-  align-items: center;
-}
-.masthead {
-  justify-content: space-between;
-}
-.title-block h1 {
-  margin: 3px 0 0;
-  font-size: 20px;
-  font-weight: 620;
-  letter-spacing: -0.02em;
-}
-.eyebrow {
-  color: #777b86;
-  font:
-    9px ui-monospace,
-    monospace;
-  letter-spacing: 0.13em;
-}
-.history-actions {
-  display: flex;
-  gap: 6px;
-}
-.history-actions kbd {
-  margin-left: 5px;
-  color: #8f929d;
-  font:
-    9px ui-monospace,
-    monospace;
-}
-.generation-bar {
-  align-items: flex-end;
-  gap: 8px;
-  padding: 12px;
-  border: 1px solid #292b32;
-  border-radius: 9px;
-  background: #1a1b20;
-}
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.field label {
-  color: #91949f;
-  font-size: 10.5px;
-}
-.name-field {
-  width: 112px;
-}
-.seed-field {
-  flex: 1;
-  min-width: 250px;
-}
-.compact-field {
-  min-width: 118px;
-}
-.seed {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.seed input {
-  width: 100%;
-}
-.seed-preview {
-  width: 31px;
-  height: 31px;
-  flex: 0 0 auto;
-  border: 1px solid #40424a;
-  border-radius: 5px;
-}
-.generate {
-  min-width: 92px;
-}
-.view-bar {
-  min-height: 38px;
-  gap: 14px;
-}
-.chips,
-.channel-toggles {
-  display: flex;
-  gap: 4px;
-}
-.chip {
-  min-height: 27px;
-  padding: 4px 9px;
-  border-radius: 999px;
-  color: #92959f;
-  font-size: 10.5px;
-  text-transform: uppercase;
-}
-.chip.active {
-  border-color: #586b9e;
-  background: #283048;
-  color: #cbd6ff;
-}
-.channel-toggles button {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  min-height: 27px;
-  padding: 4px 8px;
-  color: #727681;
-  font-size: 11px;
-}
-.channel-toggles button span {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #555;
-}
-.channel-toggles button.active {
-  color: #dddfe4;
-}
-.channel-toggles .channel-h span {
-  background: #f291d1;
-}
-.channel-toggles .channel-c span,
-.channel-toggles .channel-s span {
-  background: #ffc167;
-}
-.channel-toggles .channel-l span,
-.channel-toggles .channel-v span {
-  background: #69d7ff;
-}
-.baseline-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: #9699a3;
-  font-size: 11px;
-  white-space: nowrap;
-}
-.result-meta {
-  margin-left: auto;
-}
-.meta {
-  color: #858994;
-  font-size: 10.5px;
-  font-family: ui-monospace, monospace;
-}
-.gesture-hint {
-  margin: -6px 0 0;
-  color: #6f7380;
-  font-size: 10.5px;
-}
-.workspace {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
-  gap: 13px;
-  align-items: start;
-}
-.canvas-column {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 12px;
-}
-.panel {
-  padding: 14px;
-  border: 1px solid #2a2c33;
-  border-radius: 9px;
-  background: #1b1c21;
-}
-.panel h2 {
-  margin: 3px 0 0;
-  font-size: 14px;
-  font-weight: 620;
-}
-.panel-heading {
-  justify-content: space-between;
-  gap: 18px;
-}
-.value-pair {
-  display: flex;
-  gap: 7px;
-}
-code {
-  padding: 6px 8px;
-  border: 1px solid #30323a;
-  border-radius: 5px;
-  background: #202127;
-  color: #d7d9df;
-  font:
-    11px ui-monospace,
-    monospace;
-}
-.details {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 10px;
-  margin-top: 12px;
-}
-.details input[type='number'] {
-  width: 92px;
-}
-.contrast {
-  display: flex;
-  gap: 7px;
-  margin-left: auto;
-}
-.contrast span {
-  padding: 7px 8px;
-  border: 1px solid #30323a;
-  color: #9396a1;
-  font:
-    9.5px ui-monospace,
-    monospace;
-}
-.contrast b {
-  margin-left: 5px;
-  color: #e6e7eb;
-}
-.contrast .mapped {
-  color: #ebbd70;
-}
-.warnings {
-  margin: 0;
-  padding: 9px 12px 9px 30px;
-  border: 1px solid #514325;
-  background: #292318;
-  color: #e0be72;
-  font-size: 11px;
-}
-.error {
-  margin: 0;
-  padding: 8px 10px;
-  border: 1px solid #6c3439;
-  background: #2d1d20;
-  color: #ff9da5;
-}
-.export-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.export-head {
-  gap: 12px;
-}
-.export-head .chips {
-  margin-left: auto;
-}
-pre {
-  max-height: 420px;
-  margin: 0;
-  padding: 14px;
-  overflow: auto;
-  border: 1px solid #262830;
-  background: #121317;
-  color: #d8dae1;
-  font:
-    12px/1.55 ui-monospace,
-    monospace;
-}
-
-@media (max-width: 1180px) {
-  .generation-bar {
-    flex-wrap: wrap;
-  }
-  .workspace {
-    grid-template-columns: 1fr;
-  }
-}
-@media (max-width: 720px) {
-  .page {
-    padding: 14px 12px 36px;
-  }
-  .masthead,
-  .view-bar,
-  .panel-heading,
-  .export-head {
-    align-items: flex-start;
-    flex-wrap: wrap;
-  }
-  .result-meta {
-    width: 100%;
-    margin-left: 0;
-  }
-  .generation-bar > .field {
-    width: calc(50% - 4px);
-    min-width: 0;
-  }
-  .generation-bar .seed-field {
-    width: 100%;
-  }
-  .value-pair,
-  .contrast {
-    width: 100%;
-    margin-left: 0;
-    overflow-x: auto;
-  }
-}
-</style>

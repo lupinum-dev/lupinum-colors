@@ -1,6 +1,7 @@
 import { fileURLToPath, URL } from 'node:url'
 
 import { defineConfig, lazyPlugins } from 'vite-plus'
+import tailwindcss from '@tailwindcss/vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
@@ -15,7 +16,7 @@ export default defineConfig({
     semi: false,
     singleQuote: true,
   },
-  plugins: lazyPlugins(() => [vue(), vueDevTools()]),
+  plugins: lazyPlugins(() => [vue(), vueDevTools(), tailwindcss()]),
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
