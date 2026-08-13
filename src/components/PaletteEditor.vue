@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { XIcon } from '@lucide/vue'
+import { TriangleAlertIcon } from '@lucide/vue'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import type { Channel } from '@/app/channels'
 import { OVERLAY_DASH, trianglePoints } from '@/app/overlay-style'
@@ -7,40 +7,23 @@ import {
   activeOverlays,
   baselineVisible,
   beginContinuousEdit,
-  cancelSelectionPreview,
-  clearShadeSelection,
+  clearPreview,
   displayShades,
   effectiveShades,
   endContinuousEdit,
   generatedShades,
   previewShades,
-  protectAnchor,
-  resolvedAnchor,
-  selectedShade,
-  selectedShadeRange,
-  selectionChannel,
-  selectionChannelKey,
-  selectionCurve,
-  selectionFeather,
-  setSelectionChannel,
   setShadeColor,
-  setShadeSelection,
-  shadeSelection,
   shades,
-  updateSelectionCurve,
   visibleChannels,
   type ActiveOverlay,
-  type SelectionCurve,
 } from '@/app/palette-store'
-import { signedHueDelta } from '@/color'
-import { Button } from '@/components/ui/button'
 import { SHADE_NAMES, type OklchColor, type Shade } from '@/types'
 
 const PAD_TOP = 28
 const PAD_BOTTOM = 20
 
 const container = ref<HTMLElement | null>(null)
-const strips = ref<HTMLElement | null>(null)
 const size = ref({ width: 0, height: 0 })
 let observer: ResizeObserver | undefined
 
@@ -79,7 +62,7 @@ interface CurvePoint {
 interface Curve {
   channel: Channel
   points: CurvePoint[]
-  polyline: string
+  path: string
 }
 
 interface OverlayCurve extends Curve {
@@ -92,8 +75,45 @@ function buildCurves(colors: Record<Shade, OklchColor>): Curve[] {
       const value = channel.get(colors[shade])
       return { shade, value, x: xAt(index), y: yFor(channel, value) }
     })
-    return { channel, points, polyline: points.map(({ x, y }) => `${x},${y}`).join(' ') }
+    return { channel, points, path: smoothCurvePath(points) }
   })
+}
+
+// A monotone cubic keeps every shade on the curve without overshooting peaks.
+// The line is C1-continuous, so changing direction never creates a sharp corner.
+function smoothCurvePath(points: CurvePoint[]): string {
+  if (!points.length) return ''
+  if (points.length === 1) return `M ${coordinate(points[0].x)} ${coordinate(points[0].y)}`
+
+  const slopes = points.slice(1).map((point, index) => {
+    const previous = points[index]
+    return (point.y - previous.y) / (point.x - previous.x)
+  })
+  const tangents = points.map((_, index) => {
+    if (index === 0) return slopes[0]
+    if (index === points.length - 1) return slopes.at(-1)!
+    const before = slopes[index - 1]
+    const after = slopes[index]
+    if (before === 0 || after === 0 || Math.sign(before) !== Math.sign(after)) return 0
+    return (2 * before * after) / (before + after)
+  })
+
+  let path = `M ${coordinate(points[0].x)} ${coordinate(points[0].y)}`
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const from = points[index]
+    const to = points[index + 1]
+    const controlDistance = (to.x - from.x) / 3
+    path += ` C ${coordinate(from.x + controlDistance)} ${coordinate(
+      from.y + tangents[index] * controlDistance,
+    )}, ${coordinate(to.x - controlDistance)} ${coordinate(
+      to.y - tangents[index + 1] * controlDistance,
+    )}, ${coordinate(to.x)} ${coordinate(to.y)}`
+  }
+  return path
+}
+
+function coordinate(value: number): string {
+  return value.toFixed(2)
 }
 
 const curves = computed(() =>
@@ -125,150 +145,18 @@ function labelY(curve: Curve): number {
   return Math.min(Math.max(curve.points[0].y + 4, 16), size.value.height - PAD_BOTTOM - 8)
 }
 
-const selectionIndices = computed<[number, number] | null>(() => {
-  if (!shadeSelection.value) return null
-  return [
-    SHADE_NAMES.indexOf(shadeSelection.value.from),
-    SHADE_NAMES.indexOf(shadeSelection.value.to),
-  ]
-})
-
-function isSelected(shade: Shade): boolean {
-  return selectedShadeRange.value.includes(shade)
-}
-
-function isFeathered(shade: Shade): boolean {
-  const range = selectionIndices.value
-  if (!range || isSelected(shade)) return false
-  const index = SHADE_NAMES.indexOf(shade)
-  const distance = index < range[0] ? range[0] - index : index - range[1]
-  return distance > 0 && distance <= selectionFeather.value
-}
-
-const selectionView = computed(() => {
-  const range = selectionIndices.value
-  const channel = selectionChannel.value
-  if (!range || !channel || !shades.value || !size.value.width) return null
-  const curve = curves.value.find((candidate) => candidate.channel.key === channel.key)
-  if (!curve) return null
-  const [startIndex, endIndex] = range
-  const midPosition = (startIndex + endIndex) / 2
-  const baseMid = valueAtPosition(channel, shades.value, midPosition)
-  const midValue =
-    baseMid +
-    (selectionCurve.value.startDelta + selectionCurve.value.endDelta) / 2 +
-    selectionCurve.value.curveDelta
-  return {
-    channel,
-    startIndex,
-    endIndex,
-    x1: xAt(startIndex),
-    x2: xAt(endIndex),
-    midX: (xAt(startIndex) + xAt(endIndex)) / 2,
-    start: curve.points[startIndex],
-    end: curve.points[endIndex],
-    midY: yFor(channel, midValue),
-    segment: curve.points
-      .slice(startIndex, endIndex + 1)
-      .map(({ x, y }) => `${x},${y}`)
-      .join(' '),
-  }
-})
-
-function valueAtPosition(
-  channel: Channel,
-  palette: Record<Shade, OklchColor>,
-  position: number,
-): number {
-  const before = Math.floor(position)
-  const after = Math.ceil(position)
-  const first = channel.get(palette[SHADE_NAMES[before]])
-  if (before === after) return first
-  const second = channel.get(palette[SHADE_NAMES[after]])
-  const amount = position - before
-  return channel.key === 'h'
-    ? first + signedHueDelta(first, second) * amount
-    : first + (second - first) * amount
-}
-
-interface BrushState {
-  startIndex: number
-  pointerId: number
-}
-
-const brush = ref<BrushState | null>(null)
-let selectionAnchorIndex: number | null = null
-
-function stripIndexFromEvent(event: PointerEvent): number {
-  if (!strips.value) return 0
-  const rect = strips.value.getBoundingClientRect()
-  const relative = Math.min(rect.width - 1, Math.max(0, event.clientX - rect.left))
-  return Math.floor((relative / rect.width) * SHADE_NAMES.length)
-}
-
-function onStripPointerDown(event: PointerEvent): void {
-  if (!strips.value) return
-  const index = stripIndexFromEvent(event)
-  if (event.shiftKey && selectionAnchorIndex !== null) {
-    setShadeSelection(SHADE_NAMES[selectionAnchorIndex], SHADE_NAMES[index])
-    return
-  }
-  selectionAnchorIndex = index
-  brush.value = { startIndex: index, pointerId: event.pointerId }
-  strips.value.setPointerCapture(event.pointerId)
-  setShadeSelection(SHADE_NAMES[index])
-}
-
-function onStripPointerMove(event: PointerEvent): void {
-  if (!brush.value || brush.value.pointerId !== event.pointerId) return
-  setShadeSelection(SHADE_NAMES[brush.value.startIndex], SHADE_NAMES[stripIndexFromEvent(event)])
-}
-
-function onStripPointerUp(event: PointerEvent): void {
-  if (brush.value?.pointerId !== event.pointerId) return
-  brush.value = null
-}
-
-type CageControl = 'start' | 'curve' | 'end' | 'body'
-
 interface PointDrag {
-  kind: 'point'
   channel: Channel
   shade: Shade
   startColor: OklchColor
 }
 
-interface CageDrag {
-  kind: 'cage'
-  control: CageControl
-  channel: Channel
-  initial: SelectionCurve
-  pointerStartValue: number
-}
-
-const drag = ref<PointDrag | CageDrag | null>(null)
+const drag = ref<PointDrag | null>(null)
 
 function onPointPointerDown(event: PointerEvent, channel: Channel, shade: Shade): void {
   if (!shades.value) return
-  setSelectionChannel(channel.key)
-  if (!isSelected(shade)) setShadeSelection(shade)
-  selectedShade.value = shade
   beginContinuousEdit()
-  drag.value = { kind: 'point', channel, shade, startColor: { ...shades.value[shade] } }
-  ;(event.currentTarget as Element).setPointerCapture(event.pointerId)
-}
-
-function onCagePointerDown(event: PointerEvent, control: CageControl): void {
-  const view = selectionView.value
-  if (!view || !container.value) return
-  const rect = container.value.getBoundingClientRect()
-  drag.value = {
-    kind: 'cage',
-    control,
-    channel: view.channel,
-    initial: { ...selectionCurve.value },
-    pointerStartValue: valueAt(view.channel, event.clientY - rect.top),
-  }
+  drag.value = { channel, shade, startColor: { ...shades.value[shade] } }
   ;(event.currentTarget as Element).setPointerCapture(event.pointerId)
 }
 
@@ -277,65 +165,15 @@ function onPointerMove(event: PointerEvent): void {
   if (!active || !container.value || !shades.value) return
   const rect = container.value.getBoundingClientRect()
   const currentValue = valueAt(active.channel, event.clientY - rect.top)
-  if (active.kind === 'point') {
-    setShadeColor(active.shade, active.channel.set(active.startColor, currentValue))
-    return
-  }
-
-  const range = selectionIndices.value
-  if (!range) return
-  if (active.control === 'body') {
-    const delta = currentValue - active.pointerStartValue
-    updateSelectionCurve({
-      startDelta: active.initial.startDelta + delta,
-      endDelta: active.initial.endDelta + delta,
-    })
-  } else if (active.control === 'start') {
-    const base = active.channel.get(shades.value[SHADE_NAMES[range[0]]])
-    updateSelectionCurve({ startDelta: currentValue - base })
-  } else if (active.control === 'end') {
-    const base = active.channel.get(shades.value[SHADE_NAMES[range[1]]])
-    updateSelectionCurve({ endDelta: currentValue - base })
-  } else {
-    const baseMid = valueAtPosition(active.channel, shades.value, (range[0] + range[1]) / 2)
-    updateSelectionCurve({
-      curveDelta:
-        currentValue -
-        baseMid -
-        (selectionCurve.value.startDelta + selectionCurve.value.endDelta) / 2,
-    })
-  }
+  setShadeColor(active.shade, active.channel.set(active.startColor, currentValue))
 }
 
 function onPointerUp(): void {
   const active = drag.value
-  if (active?.kind === 'point') {
+  if (active) {
     endContinuousEdit(`Adjusted ${active.channel.label} at ${active.shade}`)
   }
   drag.value = null
-}
-
-function nudgeCage(event: KeyboardEvent, control: CageControl): void {
-  const channel = selectionChannel.value
-  if (!channel) return
-  const direction =
-    event.key === 'ArrowUp' || event.key === 'ArrowRight'
-      ? 1
-      : event.key === 'ArrowDown' || event.key === 'ArrowLeft'
-        ? -1
-        : 0
-  if (!direction) return
-  event.preventDefault()
-  const delta = channel.step * (event.shiftKey ? 10 : 1) * direction
-  if (control === 'body') {
-    updateSelectionCurve({
-      startDelta: selectionCurve.value.startDelta + delta,
-      endDelta: selectionCurve.value.endDelta + delta,
-    })
-  } else {
-    const key = `${control}Delta` as keyof SelectionCurve
-    updateSelectionCurve({ [key]: selectionCurve.value[key] + delta })
-  }
 }
 
 function onHandleKeydown(event: KeyboardEvent, channel: Channel, point: CurvePoint): void {
@@ -349,25 +187,14 @@ function onHandleKeydown(event: KeyboardEvent, channel: Channel, point: CurvePoi
   event.preventDefault()
   const delta = channel.step * (event.shiftKey ? 10 : 1) * direction
   beginContinuousEdit()
-  selectedShade.value = point.shade
   setShadeColor(point.shade, channel.set(effectiveShades.value[point.shade], point.value + delta))
   endContinuousEdit(`Adjusted ${channel.label} at ${point.shade}`)
 }
 
 function onEditorKeydown(event: KeyboardEvent): void {
-  if (event.key === 'Escape') {
-    event.preventDefault()
-    if (previewShades.value) cancelSelectionPreview()
-    else clearShadeSelection()
-    return
-  }
-  if (!shadeSelection.value || (event.key !== '[' && event.key !== ']')) return
+  if (event.key !== 'Escape' || !previewShades.value) return
   event.preventDefault()
-  const start = SHADE_NAMES.indexOf(shadeSelection.value.from)
-  const end = SHADE_NAMES.indexOf(shadeSelection.value.to)
-  if (event.key === '[' && end > start) setShadeSelection(SHADE_NAMES[start], SHADE_NAMES[end - 1])
-  if (event.key === ']' && end < SHADE_NAMES.length - 1)
-    setShadeSelection(SHADE_NAMES[start], SHADE_NAMES[end + 1])
+  clearPreview()
 }
 
 function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }): string {
@@ -376,65 +203,34 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
 </script>
 
 <template>
-  <div ref="container" class="editor" @keydown="onEditorKeydown">
-    <div
-      ref="strips"
-      class="strips"
-      @pointerdown="onStripPointerDown"
-      @pointermove="onStripPointerMove"
-      @pointerup="onStripPointerUp"
-      @pointercancel="onStripPointerUp"
-    >
-      <button
+  <div ref="container" class="editor" :class="{ dragging: drag }" @keydown="onEditorKeydown">
+    <div class="strips">
+      <div
         v-for="entry in displayShades"
         :key="entry.shade"
-        type="button"
         class="strip"
-        :class="{
-          active: entry.shade === selectedShade,
-          selected: isSelected(entry.shade),
-          feathered: isFeathered(entry.shade),
-        }"
         :data-shade="entry.shade"
         :style="{ background: entry.css, color: textColor(entry) }"
-        :aria-pressed="isSelected(entry.shade)"
       >
+        <span
+          v-if="!entry.inGamut"
+          class="gamut-indicator"
+          :style="{
+            background: textColor(entry) === '#000' ? 'rgb(255 255 255 / 72%)' : 'rgb(0 0 0 / 56%)',
+          }"
+          :aria-label="`Shade ${entry.shade} is adjusted to fit the selected display range`"
+          :title="`Shade ${entry.shade} is adjusted to fit the selected display range.`"
+        >
+          <TriangleAlertIcon />
+        </span>
         <span class="strip-shade">{{ entry.shade }}</span>
         <span class="strip-hex">{{ entry.hex }}</span>
-      </button>
-    </div>
-
-    <div v-if="shadeSelection" class="selection-badge">
-      <strong>{{ shadeSelection.from }}–{{ shadeSelection.to }}</strong>
-      <span
-        >{{ selectedShadeRange.length }} shade{{ selectedShadeRange.length === 1 ? '' : 's' }}</span
-      >
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-xs"
-        class="text-inherit hover:bg-white/15 hover:text-inherit"
-        aria-label="Clear shade selection"
-        @click="clearShadeSelection"
-      >
-        <XIcon />
-      </Button>
+      </div>
     </div>
 
     <svg v-if="size.width" class="overlay" :width="size.width" :height="size.height">
-      <g v-if="selectionView" class="selection-region">
-        <rect
-          :x="selectionView.x1 - size.width / SHADE_NAMES.length / 2"
-          y="0"
-          :width="selectionView.x2 - selectionView.x1 + size.width / SHADE_NAMES.length"
-          :height="size.height"
-        />
-        <path :d="`M ${selectionView.x1 - 10} 18 h -7 v ${size.height - 36} h 7`" />
-        <path :d="`M ${selectionView.x2 + 10} 18 h 7 v ${size.height - 36} h -7`" />
-      </g>
-
       <g v-for="curve in baselineCurves" :key="`baseline-${curve.channel.key}`" class="baseline">
-        <polyline :points="curve.polyline" />
+        <path :d="curve.path" />
         <circle
           v-for="point in curve.points"
           :key="point.shade"
@@ -450,7 +246,7 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
         class="reference"
         :style="{ color: curve.overlay.color, opacity: curve.overlay.opacity }"
       >
-        <polyline :points="curve.polyline" :stroke-dasharray="OVERLAY_DASH[curve.overlay.line]" />
+        <path :d="curve.path" :stroke-dasharray="OVERLAY_DASH[curve.overlay.line]" />
         <template v-for="point in curve.points" :key="point.shade">
           <circle v-if="curve.overlay.marker === 'circle'" :cx="point.x" :cy="point.y" r="3.5" />
           <rect
@@ -478,39 +274,19 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
         class="preview-base"
         :style="{ color: channelColor(curve.channel.key) }"
       >
-        <polyline :points="curve.polyline" />
+        <path :d="curve.path" />
       </g>
 
-      <g
-        v-for="curve in curves"
-        :key="curve.channel.key"
-        :class="{ muted: shadeSelection && curve.channel.key !== selectionChannelKey }"
-      >
+      <g v-for="curve in curves" :key="curve.channel.key">
         <text class="curve-label" :x="curve.points[0].x - 18" :y="labelY(curve)">
           {{ curve.channel.label }}
         </text>
-        <polyline class="halo" :points="curve.polyline" />
-        <polyline
-          class="line"
-          :points="curve.polyline"
-          :style="{ stroke: channelColor(curve.channel.key) }"
-        />
-        <circle
-          v-if="protectAnchor"
-          class="pin-ring"
-          :cx="curve.points[SHADE_NAMES.indexOf(resolvedAnchor)].x"
-          :cy="curve.points[SHADE_NAMES.indexOf(resolvedAnchor)].y"
-          r="11"
-        />
+        <path class="halo" :d="curve.path" />
+        <path class="line" :d="curve.path" :style="{ stroke: channelColor(curve.channel.key) }" />
         <circle
           v-for="point in curve.points"
           :key="point.shade"
           class="handle"
-          :class="{
-            active: point.shade === selectedShade,
-            selected: isSelected(point.shade) && curve.channel.key === selectionChannelKey,
-            feathered: isFeathered(point.shade) && curve.channel.key === selectionChannelKey,
-          }"
           :cx="point.x"
           :cy="point.y"
           r="7"
@@ -526,75 +302,6 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
           @pointerup="onPointerUp"
           @pointercancel="onPointerUp"
         />
-      </g>
-
-      <g
-        v-if="selectionView && selectedShadeRange.length > 1"
-        class="curve-cage"
-        :style="{ color: channelColor(selectionView.channel.key) }"
-      >
-        <polyline class="cage-visible" :points="selectionView.segment" />
-        <polyline
-          class="cage-hit"
-          :points="selectionView.segment"
-          role="slider"
-          tabindex="0"
-          aria-label="Move selected curve"
-          @keydown="nudgeCage($event, 'body')"
-          @pointerdown="onCagePointerDown($event, 'body')"
-          @pointermove="onPointerMove"
-          @pointerup="onPointerUp"
-          @pointercancel="onPointerUp"
-        />
-        <line
-          :x1="selectionView.start.x"
-          :y1="selectionView.start.y"
-          :x2="selectionView.midX"
-          :y2="selectionView.midY"
-        />
-        <line
-          :x1="selectionView.midX"
-          :y1="selectionView.midY"
-          :x2="selectionView.end.x"
-          :y2="selectionView.end.y"
-        />
-        <g
-          v-for="control in [
-            {
-              key: 'start' as const,
-              x: selectionView.start.x,
-              y: selectionView.start.y,
-              label: 'START',
-            },
-            { key: 'curve' as const, x: selectionView.midX, y: selectionView.midY, label: 'CURVE' },
-            { key: 'end' as const, x: selectionView.end.x, y: selectionView.end.y, label: 'END' },
-          ]"
-          :key="control.key"
-        >
-          <rect
-            class="cage-control"
-            :x="control.x - 6"
-            :y="control.y - 6"
-            width="12"
-            height="12"
-            role="slider"
-            tabindex="0"
-            :aria-label="`${control.label} ${selectionView.channel.label} adjustment`"
-            @keydown="nudgeCage($event, control.key)"
-            @pointerdown="onCagePointerDown($event, control.key)"
-            @pointermove="onPointerMove"
-            @pointerup="onPointerUp"
-            @pointercancel="onPointerUp"
-          />
-          <text
-            class="cage-label"
-            :x="control.x"
-            :y="Math.min(size.height - 30, control.y + 24)"
-            text-anchor="middle"
-          >
-            {{ control.label }}
-          </text>
-        </g>
       </g>
     </svg>
   </div>
@@ -617,9 +324,9 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
 .strips {
   display: flex;
   height: 100%;
-  touch-action: none;
 }
 .strip {
+  position: relative;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -629,68 +336,42 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
   padding: 10px 0;
   border: 0;
   border-radius: 0;
-  cursor: crosshair;
   font: inherit;
+}
+.gamut-indicator {
+  position: absolute;
+  inset-block-start: 8px;
+  inset-inline-end: 8px;
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  color: inherit;
+}
+.gamut-indicator svg {
+  width: 14px;
+  height: 14px;
 }
 .strip + .strip {
   border-left: 1px solid rgb(255 255 255 / 8%);
-}
-.strip.selected {
-  box-shadow:
-    inset 0 -4px #fff,
-    inset 0 3px #fff;
-}
-.strip.active {
-  outline: 2px solid currentColor;
-  outline-offset: -3px;
-}
-.strip.feathered {
-  box-shadow: inset 0 -3px rgb(255 255 255 / 65%);
 }
 .strip-shade {
   font-weight: 700;
   font-size: 12px;
 }
 .strip-hex {
-  font-size: 10px;
+  font-size: 11px;
   opacity: 0.72;
   font-family: ui-monospace, monospace;
-}
-.selection-badge {
-  position: absolute;
-  z-index: 2;
-  top: 10px;
-  left: 50%;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 7px 5px 9px;
-  transform: translateX(-50%);
-  border: 1px solid rgb(255 255 255 / 42%);
-  border-radius: var(--radius-sm);
-  background: rgb(15 16 20 / 88%);
-  color: #f2f3f5;
-  font:
-    10px ui-monospace,
-    monospace;
-}
-.selection-badge span {
-  color: #9699a3;
 }
 .overlay {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
-.selection-region rect {
-  fill: rgb(255 255 255 / 5%);
-}
-.selection-region path {
-  fill: none;
-  stroke: #fff;
-  stroke-width: 1.5;
-}
-.baseline polyline {
+.baseline path {
   fill: none;
   stroke: #d8d9df;
   stroke-width: 1.2;
@@ -703,7 +384,7 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
   stroke-width: 1.2;
   opacity: 0.65;
 }
-.reference polyline {
+.reference path {
   fill: none;
   stroke: currentColor;
   stroke-width: 1.55;
@@ -715,18 +396,12 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
   stroke: currentColor;
   stroke-width: 1.5;
 }
-.preview-base polyline {
+.preview-base path {
   fill: none;
   stroke: currentColor;
   stroke-width: 1.4;
   stroke-dasharray: 3 4;
   opacity: 0.5;
-}
-.pin-ring {
-  fill: none;
-  stroke: rgb(255 255 255 / 70%);
-  stroke-width: 1.3;
-  stroke-dasharray: 2.5 3;
 }
 .halo {
   fill: none;
@@ -736,9 +411,6 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
 .line {
   fill: none;
   stroke-width: 2;
-}
-.muted {
-  opacity: 0.3;
 }
 .curve-label {
   font-size: 11px;
@@ -755,59 +427,29 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
   cursor: grab;
   pointer-events: auto;
 }
-.handle.active {
-  stroke: #fff;
-  stroke-width: 3;
-}
-.handle.selected {
-  fill: currentColor;
-  stroke: #fff;
-  stroke-width: 2;
-}
-.handle.feathered {
-  fill: #15161a;
-  stroke: #fff;
-  stroke-width: 2;
-}
-.handle:focus-visible,
-.cage-control:focus-visible,
-.cage-hit:focus-visible {
+.handle:focus-visible {
   outline: none;
   stroke: #87a4ff;
   stroke-width: 4;
 }
-.curve-cage line {
-  stroke: rgb(255 255 255 / 52%);
-  stroke-width: 1;
-  stroke-dasharray: 3 4;
-}
-.cage-visible {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 4;
-}
-.cage-hit {
-  fill: none;
-  stroke: transparent;
-  stroke-width: 18;
-  cursor: ns-resize;
-  pointer-events: stroke;
-}
-.cage-control {
-  fill: #15161a;
-  stroke: #fff;
-  stroke-width: 2;
-  cursor: ns-resize;
-  pointer-events: auto;
-}
-.cage-label {
-  fill: #fff;
-  font:
-    9px ui-monospace,
-    monospace;
-  paint-order: stroke;
-  stroke: #15161a;
-  stroke-width: 3px;
-  letter-spacing: 0.08em;
+@media (prefers-reduced-motion: no-preference) {
+  .strip {
+    transition-property: background-color, color;
+    transition-duration: 140ms;
+    transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+  }
+  .line,
+  .halo,
+  .preview-base path,
+  .handle {
+    transition-property: d, cx, cy;
+    transition-duration: 140ms;
+    transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+  }
+  .editor.dragging .line,
+  .editor.dragging .halo,
+  .editor.dragging .handle {
+    transition-duration: 0ms;
+  }
 }
 </style>

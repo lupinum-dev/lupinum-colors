@@ -9,12 +9,14 @@ import {
   canUndo,
   commitPalette,
   displayShades,
+  gamut,
   generate,
   generationError,
   historyIndex,
   overlayConfigs,
   seedColor,
   shades,
+  warnings,
 } from '../src/app/palette-store'
 import App from '../src/App.vue'
 import PaletteEditor from '../src/components/PaletteEditor.vue'
@@ -43,7 +45,7 @@ describe('palette editor rendering', () => {
     expect(overlayConfigs.value).toHaveLength(3)
 
     const html = await renderToString(createSSRApp(PaletteEditor))
-    expect(html.match(/<button/g)).toHaveLength(11)
+    expect(html.match(/class="strip"/g)).toHaveLength(11)
     expect(html).toContain('#f7f6f4')
   })
 
@@ -55,6 +57,8 @@ describe('palette editor rendering', () => {
 
     expect(wrapper.findAll('.strip')).toHaveLength(11)
     expect(wrapper.findAll('.line')).toHaveLength(3)
+    expect(wrapper.find('.line').attributes('d')).toContain(' C ')
+    expect(wrapper.find('.pin-ring').exists()).toBe(false)
     expect(wrapper.findAll('.handle')).toHaveLength(33)
   })
 
@@ -79,6 +83,23 @@ describe('palette editor rendering', () => {
     ).not.toBe('')
     expect(wrapper.findAll('.handle')).toHaveLength(33)
     expect(wrapper.text()).toContain('brand-500')
+    wrapper.unmount()
+  })
+
+  it('names and marks shades adjusted to the selected display range', async () => {
+    seedColor.value = '#d9e900'
+    gamut.value = 'srgb'
+    generate()
+    const adjusted = displayShades.value.filter((shade) => !shade.inGamut)
+
+    expect(adjusted.length).toBeGreaterThan(0)
+    expect(warnings.value.join(' ')).toContain(
+      `${adjusted.length === 1 ? 'Shade' : 'Shades'} ${adjusted.map((shade) => shade.shade).join(', ')}`,
+    )
+    expect(warnings.value.join(' ')).toContain('preview and exported values')
+
+    const wrapper = mount(App)
+    expect(wrapper.findAll('.gamut-indicator')).toHaveLength(adjusted.length)
     wrapper.unmount()
   })
 

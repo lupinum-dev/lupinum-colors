@@ -19,12 +19,12 @@ describe('analysis workspace', () => {
       props: { name: 'brand', shades: displayShades.value, appTheme: 'light' },
     })
 
-    expect(wrapper.text()).toContain('Palette preview')
+    expect(wrapper.text()).toContain('Interface preview')
     const tabs = wrapper.findAll('[role="tab"]')
     await tabs.find((tab) => tab.text() === 'Contrast')!.trigger('mousedown', { button: 0 })
-    expect(wrapper.text()).toContain('Contrast matrix')
-    await tabs.find((tab) => tab.text() === 'Tokens')!.trigger('mousedown', { button: 0 })
-    expect(wrapper.text()).toContain('Production tokens')
+    expect(wrapper.text()).toContain('Contrast checker')
+    await tabs.find((tab) => tab.text() === 'Export')!.trigger('mousedown', { button: 0 })
+    expect(wrapper.text()).toContain('Export palette')
   })
 
   it('lets the preview appearance differ from the app theme', async () => {

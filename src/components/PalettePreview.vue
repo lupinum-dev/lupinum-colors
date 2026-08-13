@@ -65,28 +65,38 @@ function selectAppearance(value: unknown): void {
   <Tabs v-model="scenario" class="preview-lab gap-0" :style="previewStyle">
     <div class="flex flex-wrap items-center justify-between gap-3 pb-3">
       <div>
-        <h3 class="text-[13px] font-semibold">Palette preview</h3>
-        <p class="text-[13px] text-muted-foreground">
-          Neutral product chrome with deliberate {{ name }} roles.
+        <h3 class="cn-font-heading text-sm font-medium">Interface preview</h3>
+        <p class="text-sm text-pretty text-muted-foreground">
+          See how {{ name }} looks in a realistic interface.
         </p>
       </div>
-      <div class="flex flex-wrap items-center gap-2">
-        <TabsList aria-label="Preview scenario">
-          <TabsTrigger value="workspace">Workspace</TabsTrigger>
-          <TabsTrigger value="components">Components</TabsTrigger>
-        </TabsList>
-        <ToggleGroup
-          type="single"
-          variant="outline"
-          size="sm"
-          :model-value="appearance"
-          aria-label="Preview appearance"
-          @update:model-value="selectAppearance"
-        >
-          <ToggleGroupItem value="auto">Auto</ToggleGroupItem>
-          <ToggleGroupItem value="light">Light</ToggleGroupItem>
-          <ToggleGroupItem value="dark">Dark</ToggleGroupItem>
-        </ToggleGroup>
+      <div class="flex flex-wrap items-end gap-3">
+        <div class="grid gap-1">
+          <span id="preview-example-label" class="text-xs font-medium text-muted-foreground"
+            >Example</span
+          >
+          <TabsList aria-labelledby="preview-example-label">
+            <TabsTrigger value="workspace">Workspace</TabsTrigger>
+            <TabsTrigger value="components">Components</TabsTrigger>
+          </TabsList>
+        </div>
+        <div class="grid gap-1">
+          <span id="preview-theme-label" class="text-xs font-medium text-muted-foreground"
+            >Preview theme</span
+          >
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            size="sm"
+            :model-value="appearance"
+            aria-labelledby="preview-theme-label"
+            @update:model-value="selectAppearance"
+          >
+            <ToggleGroupItem value="auto">Match app</ToggleGroupItem>
+            <ToggleGroupItem value="light">Light</ToggleGroupItem>
+            <ToggleGroupItem value="dark">Dark</ToggleGroupItem>
+          </ToggleGroup>
+        </div>
       </div>
     </div>
 
@@ -224,16 +234,16 @@ function selectAppearance(value: unknown): void {
           <section class="specimen-group">
             <div>
               <h4>Actions</h4>
-              <p>Hierarchy and interaction states.</p>
+              <p>Primary, secondary, outline, disabled, and icon buttons.</p>
             </div>
             <div class="mt-5 flex flex-wrap gap-2">
               <Button class="preview-primary border-0" :style="{ color: primaryForeground }"
                 >Create project</Button
               >
               <Button class="preview-secondary border-0">Save draft</Button>
-              <Button variant="outline">Outline</Button>
+              <Button variant="outline">View details</Button>
               <Button variant="ghost">Cancel</Button>
-              <Button disabled class="preview-disabled">Unavailable</Button>
+              <Button disabled class="preview-disabled">Publish</Button>
               <Button variant="outline" size="icon" aria-label="Open more actions"
                 ><MoreHorizontalIcon
               /></Button>
@@ -256,7 +266,7 @@ function selectAppearance(value: unknown): void {
           <section class="specimen-group">
             <div>
               <h4>Fields</h4>
-              <p>Input, selection, and focus roles.</p>
+              <p>Text fields, choices, checkboxes, and focus states.</p>
             </div>
             <div class="mt-5 grid gap-4">
               <div class="grid gap-2">
@@ -292,17 +302,17 @@ function selectAppearance(value: unknown): void {
           <section class="specimen-group">
             <div>
               <h4>Feedback</h4>
-              <p>Status that remains legible without hue.</p>
+              <p>Success and progress states that do not rely on color alone.</p>
             </div>
             <Alert class="mt-5 preview-soft-border">
               <CheckCircle2Icon />
-              <AlertTitle>Contrast review passed</AlertTitle>
-              <AlertDescription>Primary actions meet the selected AA requirement.</AlertDescription>
+              <AlertTitle>Contrast check passed</AlertTitle>
+              <AlertDescription>Primary buttons meet WCAG AA for normal text.</AlertDescription>
             </Alert>
             <div class="mt-5 grid gap-3">
               <div
                 v-for="(label, index) in [
-                  'Tokens synchronized',
+                  'Color tokens synced',
                   'Palette published',
                   'Review requested',
                 ]"
@@ -366,14 +376,14 @@ function selectAppearance(value: unknown): void {
   padding: 8px 10px;
   color: var(--scene-muted-fg);
   text-align: start;
-  font-size: 13px;
+  font-size: 14px;
 }
 .workspace-sidebar nav button:hover {
   background: var(--scene-muted);
   color: var(--scene-fg);
 }
 .workspace-sidebar nav .preview-nav-active {
-  background: color-mix(in oklch, var(--preview-200) 42%, var(--scene-muted));
+  background: color-mix(in oklab, var(--preview-200) 42%, var(--scene-muted));
   color: var(--scene-fg);
   font-weight: 600;
 }
@@ -412,14 +422,14 @@ function selectAppearance(value: unknown): void {
   border-block-end: 0;
 }
 .specimen-group h4 {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 500;
 }
 .specimen-group p {
   margin-top: 2px;
   color: var(--scene-muted-fg);
-  font-size: 13px;
-  line-height: 1.4;
+  font-size: 14px;
+  line-height: 1.45;
 }
 .preview-primary,
 .preview-checkbox {
@@ -427,12 +437,12 @@ function selectAppearance(value: unknown): void {
 }
 .preview-secondary,
 .preview-soft {
-  background: color-mix(in oklch, var(--preview-200) 68%, var(--scene-muted)) !important;
+  background: color-mix(in oklab, var(--preview-200) 68%, var(--scene-muted)) !important;
   color: var(--scene-fg) !important;
 }
 .preview-soft-border {
   border-color: var(--scene-border);
-  background: color-mix(in oklch, var(--preview-100) 12%, var(--scene-panel));
+  background: color-mix(in oklab, var(--preview-100) 12%, var(--scene-panel));
   color: var(--scene-fg);
 }
 .preview-track {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { perceptualDistance } from "../src/color.js";
 import { generatePalette, inferAnchor } from "../src/palette.js";
 import { loadTailwindFamilies } from "../src/tailwind-data.js";

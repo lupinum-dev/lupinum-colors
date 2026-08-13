@@ -65,7 +65,7 @@ export interface PaletteRequest {
   color: string | OklchColor;
   seed?: SeedMode;
   anchor?: Shade | "auto";
-  huePath?: "balanced" | string;
+  huePath?: string;
   gamut?: Gamut;
   families?: PaletteFamily[];
 }

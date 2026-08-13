@@ -1,6 +1,6 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 const projectRoot = fileURLToPath(new URL("..", import.meta.url));
 

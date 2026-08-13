@@ -86,6 +86,10 @@ function selectVisibleChannels(value: unknown): void {
   }
 }
 
+function huePathLabel(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1)
+}
+
 const theme = ref<Theme>('dark')
 
 function setTheme(nextTheme: Theme): void {
@@ -134,7 +138,17 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
 
 <template>
   <TooltipProvider>
-    <main id="main-content" class="min-h-screen overflow-x-clip bg-background text-foreground">
+    <a
+      href="#main-content"
+      class="fixed start-4 top-3 z-50 -translate-y-16 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground shadow-md transition-transform focus-visible:translate-y-0 focus-visible:outline-2 focus-visible:outline-offset-2"
+    >
+      Skip to palette editor
+    </a>
+    <main
+      id="main-content"
+      tabindex="-1"
+      class="min-h-screen overflow-x-clip bg-background text-foreground"
+    >
       <header class="app-toolbar sticky top-0 z-30 border-b">
         <div class="app-shell flex h-[52px] items-center justify-between gap-3">
           <div class="flex min-w-0 items-center gap-2.5">
@@ -143,9 +157,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
               <span class="sm:hidden">Palette lab</span>
               <span class="hidden sm:inline">Tailwind shade generator</span>
             </h1>
-            <Badge variant="outline" class="hidden font-mono text-[10px] lg:inline-flex">
-              OKLCH
-            </Badge>
+            <Badge variant="outline" class="hidden font-mono lg:inline-flex"> OKLCH </Badge>
           </div>
           <div class="flex items-center gap-1">
             <Button
@@ -183,9 +195,15 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
               <Redo2Icon data-icon="inline-start" />
               <span class="hidden sm:inline">Redo</span>
             </Button>
-            <Button variant="outline" size="sm" @click="resetToGenerated">
+            <Button
+              variant="outline"
+              size="sm"
+              aria-label="Reset edits"
+              title="Reset edits"
+              @click="resetToGenerated"
+            >
               <RotateCcwIcon data-icon="inline-start" />
-              <span class="hidden sm:inline">Reset</span>
+              <span class="hidden sm:inline">Reset edits</span>
             </Button>
           </div>
         </div>
@@ -196,27 +214,31 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
           <Card size="sm" class="source-panel">
             <CardHeader class="border-b">
               <div>
-                <CardTitle>Palette source</CardTitle>
-                <CardDescription>Generate the scale from one canonical seed.</CardDescription>
+                <CardTitle>Palette setup</CardTitle>
+                <CardDescription class="text-pretty">
+                  Start with one color, then choose how it fits into the scale.
+                </CardDescription>
               </div>
               <CardAction>
-                <Badge
-                  v-if="lastResult"
-                  variant="outline"
-                  class="hidden font-mono text-[10px] sm:inline-flex"
-                >
-                  {{ lastResult.reference.kind }} · anchor {{ lastResult.configuration.anchor }}
+                <Badge v-if="lastResult" variant="outline" class="hidden font-mono sm:inline-flex">
+                  {{ lastResult.reference.kind }} · shade {{ lastResult.configuration.anchor }}
                 </Badge>
               </CardAction>
             </CardHeader>
             <CardContent class="source-fields">
               <div class="source-identity">
                 <div class="grid gap-2">
-                  <Label for="name">Token name</Label>
-                  <Input id="name" v-model="paletteName" spellcheck="false" />
+                  <Label for="name">Palette name</Label>
+                  <Input
+                    id="name"
+                    v-model="paletteName"
+                    name="palette-name"
+                    autocomplete="off"
+                    spellcheck="false"
+                  />
                 </div>
                 <div class="grid gap-2">
-                  <Label for="seed">Seed color</Label>
+                  <Label for="seed">Starting color</Label>
                   <div class="flex items-center gap-2">
                     <span
                       class="size-9 shrink-0 rounded-md border shadow-xs ring-1 ring-white/10"
@@ -227,6 +249,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
                       id="seed"
                       v-model="seedColor"
                       class="font-mono"
+                      name="seed-color"
+                      autocomplete="off"
                       spellcheck="false"
                       placeholder="#89E5D2 or oklch(86% 0.08 174)"
                       @keydown.enter="generate"
@@ -236,54 +260,94 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
               </div>
               <div class="source-options">
                 <div class="grid gap-2">
-                  <Label for="seed-mode" class="text-xs">Seed behavior</Label>
-                  <NativeSelect id="seed-mode" v-model="seedMode" class="w-full" size="sm">
-                    <NativeSelectOption value="exact">Preserve exact</NativeSelectOption>
-                    <NativeSelectOption value="canonical">Fit canonical</NativeSelectOption>
+                  <Label for="seed-mode">Color matching</Label>
+                  <NativeSelect
+                    id="seed-mode"
+                    v-model="seedMode"
+                    name="seed-mode"
+                    class="w-full"
+                    size="sm"
+                    aria-describedby="seed-mode-hint"
+                  >
+                    <NativeSelectOption value="exact">Keep exact color</NativeSelectOption>
+                    <NativeSelectOption value="canonical">Match Tailwind curve</NativeSelectOption>
                   </NativeSelect>
+                  <p id="seed-mode-hint" class="field-hint">
+                    Keep your color unchanged, or use it as a guide for a smoother Tailwind scale.
+                  </p>
                 </div>
                 <div class="grid gap-2">
-                  <Label for="anchor" class="text-xs">Anchor</Label>
-                  <NativeSelect id="anchor" v-model="anchor" class="w-full" size="sm">
+                  <Label for="anchor">Anchor shade</Label>
+                  <NativeSelect
+                    id="anchor"
+                    v-model="anchor"
+                    name="anchor"
+                    class="w-full"
+                    size="sm"
+                    aria-describedby="anchor-hint"
+                  >
                     <NativeSelectOption value="auto">Auto</NativeSelectOption>
                     <NativeSelectOption v-for="shade in SHADE_NAMES" :key="shade" :value="shade">{{
                       shade
                     }}</NativeSelectOption>
                   </NativeSelect>
+                  <p id="anchor-hint" class="field-hint">
+                    Choose where the starting color sits in the 50–950 scale.
+                  </p>
                 </div>
                 <div class="grid gap-2">
-                  <Label for="hue-path" class="text-xs">Hue path</Label>
-                  <NativeSelect id="hue-path" v-model="huePath" class="w-full" size="sm">
+                  <Label for="hue-path">Hue direction</Label>
+                  <NativeSelect
+                    id="hue-path"
+                    v-model="huePath"
+                    name="hue-path"
+                    class="w-full"
+                    size="sm"
+                    aria-describedby="hue-path-hint"
+                  >
                     <NativeSelectOption
                       v-for="option in huePathOptions"
                       :key="option"
                       :value="option"
-                      >{{ option }}</NativeSelectOption
+                      >{{ huePathLabel(option) }}</NativeSelectOption
                     >
                   </NativeSelect>
+                  <p id="hue-path-hint" class="field-hint">
+                    Control how the hue changes from light shades to dark shades.
+                  </p>
                 </div>
                 <div class="grid gap-2">
-                  <Label for="gamut" class="text-xs">Gamut</Label>
-                  <NativeSelect id="gamut" v-model="gamut" class="w-full" size="sm">
+                  <Label for="gamut">Display range</Label>
+                  <NativeSelect
+                    id="gamut"
+                    v-model="gamut"
+                    name="gamut"
+                    class="w-full"
+                    size="sm"
+                    aria-describedby="gamut-hint"
+                  >
                     <NativeSelectOption value="srgb">sRGB</NativeSelectOption>
                     <NativeSelectOption value="display-p3">Display P3</NativeSelectOption>
-                    <NativeSelectOption value="none">Unbounded</NativeSelectOption>
+                    <NativeSelectOption value="none">No limit</NativeSelectOption>
                   </NativeSelect>
+                  <p id="gamut-hint" class="field-hint">
+                    Limit colors to the screens your product supports.
+                  </p>
                 </div>
               </div>
               <Button class="generate h-9 w-full" @click="generate">
                 <WandSparklesIcon data-icon="inline-start" />
-                Generate
+                Generate palette
               </Button>
 
               <Alert v-if="generationError" variant="destructive" class="source-alert">
                 <TriangleAlertIcon />
-                <AlertTitle>Could not generate this palette</AlertTitle>
+                <AlertTitle>Palette could not be generated</AlertTitle>
                 <AlertDescription>{{ generationError }}</AlertDescription>
               </Alert>
               <Alert v-else-if="warnings.length" class="source-alert border-amber-500/30">
                 <TriangleAlertIcon class="text-amber-600 dark:text-amber-300" />
-                <AlertTitle>Palette warnings</AlertTitle>
+                <AlertTitle>Review palette details</AlertTitle>
                 <AlertDescription>
                   <ul class="list-disc space-y-1 ps-4">
                     <li v-for="warning in warnings" :key="warning">{{ warning }}</li>
@@ -301,9 +365,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
                   aria-label="Editor view"
                 >
                   <div class="mr-auto hidden min-w-0 sm:block">
-                    <p class="text-sm font-medium">Palette curve</p>
-                    <p class="truncate text-xs text-muted-foreground">
-                      Adjust lightness, chroma, and hue across every shade
+                    <p class="cn-font-heading text-sm font-medium">Palette curve</p>
+                    <p class="truncate text-sm text-muted-foreground">
+                      Fine-tune lightness, color intensity, and hue for each shade.
                     </p>
                   </div>
                   <ToggleGroup
@@ -351,7 +415,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
                     class="flex cursor-pointer items-center gap-2 px-1 text-sm text-muted-foreground"
                   >
                     <Checkbox v-model="baselineVisible" />
-                    Generated baseline
+                    Show generated curve
                   </label>
                 </section>
                 <PaletteEditor />
@@ -359,8 +423,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
             </div>
             <p class="mt-2 flex items-center gap-2 px-1 text-xs text-muted-foreground">
               <SlidersHorizontalIcon class="size-3.5" />
-              Drag a point to edit one shade · Shift-drag scales its region · scroll changes the
-              radius
+              Drag a point to change a shade. Use the arrow keys for precise adjustments.
             </p>
           </div>
 
@@ -432,6 +495,13 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
 .source-alert {
   margin-top: 4px;
 }
+.field-hint {
+  max-width: 42ch;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 1.4;
+  text-wrap: pretty;
+}
 
 @media (max-width: 639px) {
   .inspector-panel {
@@ -459,7 +529,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
   }
   .source-fields {
     grid-template-columns: minmax(300px, 1fr) minmax(560px, 2fr) auto;
-    align-items: end;
+    align-items: start;
   }
   .source-options {
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -467,12 +537,16 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
   .source-alert {
     grid-column: 1 / -1;
   }
+  .generate {
+    margin-top: 28px;
+  }
   .inspector-panel {
     position: sticky;
     top: 68px;
   }
   .analysis-layout {
     grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 16px;
   }
   .analysis-workspace-slot {
     grid-column: 1;
@@ -500,6 +574,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
     grid-column: 1;
     grid-row: auto;
     justify-self: start;
+  }
+  .generate {
+    margin-top: 0;
   }
   .analysis-layout {
     grid-template-columns: minmax(288px, 320px) minmax(900px, 1fr) minmax(360px, 420px);

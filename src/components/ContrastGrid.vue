@@ -33,10 +33,20 @@ const focusedIndex = ref(24)
 const cellRefs = ref<(HTMLElement | null)[]>([])
 
 const standards: { value: ContrastStandard; label: string; short: string; threshold: number }[] = [
-  { value: 'all', label: 'Show all contrast ratios', short: 'All', threshold: 1 },
-  { value: 'ui', label: 'UI and large text, 3 to 1', short: 'UI 3:1', threshold: 3 },
-  { value: 'aa', label: 'WCAG AA body text, 4.5 to 1', short: 'AA 4.5:1', threshold: 4.5 },
-  { value: 'aaa', label: 'WCAG AAA body text, 7 to 1', short: 'AAA 7:1', threshold: 7 },
+  { value: 'all', label: 'Show every contrast ratio', short: 'All', threshold: 1 },
+  {
+    value: 'ui',
+    label: 'UI controls and large text, at least 3 to 1',
+    short: 'UI 3:1',
+    threshold: 3,
+  },
+  {
+    value: 'aa',
+    label: 'WCAG AA normal text, at least 4.5 to 1',
+    short: 'AA 4.5:1',
+    threshold: 4.5,
+  },
+  { value: 'aaa', label: 'WCAG AAA normal text, at least 7 to 1', short: 'AAA 7:1', threshold: 7 },
 ]
 const colors = computed<MatrixColor[]>(() => [
   {
@@ -82,7 +92,7 @@ const passingCount = computed(() => flatCells.value.filter((cell) => cell.passes
 const summary = computed(() =>
   standard.value === 'all'
     ? `${flatCells.value.length} combinations`
-    : `${passingCount.value} of ${flatCells.value.length} pass ${currentStandard.value.short}`,
+    : `${passingCount.value} of ${flatCells.value.length} combinations meet ${currentStandard.value.short}`,
 )
 const activePair = computed(() => transientPair.value ?? pinnedPair.value)
 const activeForeground = computed(
@@ -163,13 +173,15 @@ function outcome(ratio: number, minimum: number): string {
 
 <template>
   <div class="contrast-analysis">
-    <div class="flex flex-wrap items-end justify-between gap-3 pb-3">
+    <div class="contrast-toolbar">
       <div>
-        <h3 class="text-[13px] font-semibold">Contrast matrix</h3>
-        <p class="text-[13px] text-muted-foreground">Foreground columns against background rows.</p>
+        <h3 class="cn-font-heading text-sm font-medium">Contrast checker</h3>
+        <p class="text-sm text-pretty text-muted-foreground">
+          Choose a text color from the columns and a background from the rows.
+        </p>
       </div>
       <div class="flex flex-wrap items-center gap-2">
-        <span class="text-xs font-medium text-muted-foreground">Requirement</span>
+        <span class="text-xs font-medium text-muted-foreground">Minimum contrast</span>
         <ToggleGroup
           type="single"
           variant="outline"
@@ -191,111 +203,36 @@ function outcome(ratio: number, minimum: number): string {
       <p class="sr-only" role="status" aria-live="polite">{{ summary }}</p>
     </div>
 
-    <div class="analysis-split">
-      <div class="min-w-0">
-        <div
-          class="mb-2 flex items-center justify-between text-[11px] font-medium text-muted-foreground"
-        >
-          <span>Background ↓</span><span>Foreground →</span>
-        </div>
-        <div
-          class="matrix-scroll overflow-auto rounded-[10px] bg-muted/35 p-2 ring-1 ring-foreground/10 sm:p-3"
-        >
-          <table class="contrast-matrix border-separate border-spacing-1">
-            <caption class="sr-only">
-              WCAG contrast ratios. Columns are foreground colors and rows are background colors.
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col" class="matrix-corner sticky start-0 z-30 bg-muted" />
-                <th
-                  v-for="color in colors"
-                  :key="`column-${color.id}`"
-                  scope="col"
-                  class="matrix-heading sticky top-0 z-20 bg-muted pb-1"
-                >
-                  {{ color.label }}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="row in matrix" :key="`row-${row.background.id}`">
-                <th scope="row" class="matrix-heading sticky start-0 z-10 bg-muted pe-2 text-end">
-                  {{ row.background.label }}
-                </th>
-                <td v-for="cell in row.cells" :key="`${cell.background.id}-${cell.foreground.id}`">
-                  <button
-                    :ref="(element) => setCellRef(cell.row * colors.length + cell.column, element)"
-                    type="button"
-                    class="matrix-cell"
-                    :class="{
-                      'matrix-cell-failed': standard !== 'all' && !cell.passes,
-                      'matrix-cell-pinned':
-                        pinnedPair.foreground === cell.foreground.id &&
-                        pinnedPair.background === cell.background.id,
-                    }"
-                    :style="{ background: cell.background.css, color: cell.foreground.css }"
-                    :tabindex="focusedIndex === cell.row * colors.length + cell.column ? 0 : -1"
-                    :aria-label="`${cell.foreground.token} on ${cell.background.token}, ${cell.ratio.toFixed(2)} to 1, ${standard === 'all' ? 'ratio only' : cell.passes ? 'passes' : 'fails'} ${currentStandard.short}`"
-                    @focus="transientPair = pairFor(cell.row, cell.column)"
-                    @blur="transientPair = null"
-                    @mouseenter="transientPair = pairFor(cell.row, cell.column)"
-                    @mouseleave="transientPair = null"
-                    @click="pinPair(pairFor(cell.row, cell.column))"
-                    @keydown="onCellKeydown($event, cell.row, cell.column)"
-                  >
-                    <span class="text-sm font-semibold leading-none">Aa</span>
-                    <span
-                      class="cell-meta"
-                      :style="{
-                        background:
-                          cell.background.metadataColor === '#000'
-                            ? 'rgb(255 255 255 / 78%)'
-                            : 'rgb(0 0 0 / 66%)',
-                        color: cell.background.metadataColor,
-                      }"
-                    >
-                      <template v-if="standard !== 'all'"
-                        ><CheckIcon v-if="cell.passes" /><XIcon v-else
-                      /></template>
-                      {{ cell.ratio.toFixed(2) }}
-                    </span>
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <aside class="pair-detail" aria-label="Selected contrast pair">
+    <aside class="pair-detail" aria-label="Current contrast colors">
+      <div class="pair-preview">
         <div class="flex items-start justify-between gap-3">
-          <div>
-            <p class="text-[11px] font-medium tracking-[0.08em] text-muted-foreground uppercase">
-              Selected pair
-            </p>
-            <h4 class="mt-1 text-sm font-semibold">
+          <div class="min-w-0">
+            <p class="instrument-label">Current colors</p>
+            <h4 class="mt-1 truncate text-sm font-semibold">
               {{ activeForeground.token }} on {{ activeBackground.token }}
             </h4>
           </div>
           <Button variant="outline" size="sm" @click="swapPair"
-            ><ArrowLeftRightIcon data-icon="inline-start" />Swap</Button
+            ><ArrowLeftRightIcon data-icon="inline-start" />Swap colors</Button
           >
         </div>
         <div
-          class="pair-sample mt-4"
+          class="pair-sample"
           :style="{ background: activeBackground.css, color: activeForeground.css }"
         >
-          <p class="text-xl font-semibold tracking-tight">Design with confidence.</p>
-          <p class="mt-2 text-sm">
-            Body text, icons, and control boundaries need different contrast levels.
+          <p class="text-lg font-semibold tracking-tight">Sample heading</p>
+          <p class="mt-1 max-w-[48ch] text-sm text-pretty">
+            This sample shows text, icons, and control borders in the selected colors.
           </p>
           <span
-            class="mt-4 inline-flex rounded-md border border-current px-3 py-2 text-sm font-medium"
-            >Example action</span
+            class="mt-3 inline-flex rounded-md border border-current px-3 py-1.5 text-sm font-medium"
+            >Sample button</span
           >
         </div>
-        <div class="mt-4 flex items-end justify-between gap-3 border-b pb-4">
+      </div>
+
+      <div class="pair-results">
+        <div class="ratio-summary">
           <div>
             <p class="text-xs text-muted-foreground">Contrast ratio</p>
             <p class="font-mono text-2xl font-semibold tabular-nums">
@@ -306,7 +243,7 @@ function outcome(ratio: number, minimum: number): string {
             standard === 'all' ? 'Measured' : outcome(activeRatio, threshold)
           }}</Badge>
         </div>
-        <div class="mt-4 grid grid-cols-3 gap-2">
+        <div class="result-grid">
           <div
             v-for="result in [
               { label: 'UI', value: 3 },
@@ -321,37 +258,136 @@ function outcome(ratio: number, minimum: number): string {
             <span>{{ result.value }}:1</span>
           </div>
         </div>
-        <div class="mt-5">
-          <p class="text-xs font-medium">Strong foreground alternatives</p>
-          <div class="mt-2 space-y-2">
-            <button
+        <p class="text-xs text-pretty text-muted-foreground">
+          UI controls and large text need 3:1. Normal text needs 4.5:1 for AA or 7:1 for AAA.
+        </p>
+        <div>
+          <p class="text-xs font-medium">Best text colors for this background</p>
+          <div class="alternative-grid">
+            <Button
               v-for="alternative in alternatives"
               :key="alternative.color.id"
-              class="alternative-row"
+              type="button"
+              variant="ghost"
+              size="sm"
+              class="alternative-row h-auto justify-start"
               @click="
                 pinPair({ foreground: alternative.color.id, background: activeBackground.id })
               "
             >
               <span
-                class="size-6 rounded-md ring-1 ring-black/10 dark:ring-white/10"
+                class="size-5 shrink-0 rounded-sm ring-1 ring-black/10 dark:ring-white/10"
                 :style="{ background: alternative.color.css }"
               />
-              <span>{{ alternative.color.token }}</span>
+              <span class="min-w-0 truncate">{{ alternative.color.token }}</span>
               <span class="ms-auto font-mono text-xs tabular-nums"
                 >{{ alternative.ratio.toFixed(2) }}:1</span
               >
-            </button>
+            </Button>
           </div>
         </div>
-      </aside>
+      </div>
+    </aside>
+
+    <div class="matrix-axis"><span>Background ↓</span><span>Foreground →</span></div>
+    <div
+      class="matrix-scroll overflow-auto rounded-[10px] bg-muted/35 p-2 ring-1 ring-foreground/10 sm:p-3"
+    >
+      <table class="contrast-matrix border-separate border-spacing-1">
+        <caption class="sr-only">
+          WCAG contrast ratios. Columns are foreground colors and rows are background colors.
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col" class="matrix-corner sticky start-0 z-30 bg-muted" />
+            <th
+              v-for="color in colors"
+              :key="`column-${color.id}`"
+              scope="col"
+              class="matrix-heading sticky top-0 z-20 bg-muted pb-1"
+            >
+              {{ color.label }}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="row in matrix" :key="`row-${row.background.id}`">
+            <th scope="row" class="matrix-heading sticky start-0 z-10 bg-muted pe-2 text-end">
+              {{ row.background.label }}
+            </th>
+            <td v-for="cell in row.cells" :key="`${cell.background.id}-${cell.foreground.id}`">
+              <button
+                :ref="(element) => setCellRef(cell.row * colors.length + cell.column, element)"
+                type="button"
+                class="matrix-cell"
+                :class="{
+                  'matrix-cell-failed': standard !== 'all' && !cell.passes,
+                  'matrix-cell-pinned':
+                    pinnedPair.foreground === cell.foreground.id &&
+                    pinnedPair.background === cell.background.id,
+                }"
+                :style="{ background: cell.background.css, color: cell.foreground.css }"
+                :tabindex="focusedIndex === cell.row * colors.length + cell.column ? 0 : -1"
+                :aria-label="`Foreground ${cell.foreground.token}, background ${cell.background.token}, contrast ${cell.ratio.toFixed(2)} to 1, ${standard === 'all' ? 'no minimum selected' : cell.passes ? 'meets' : 'does not meet'} ${currentStandard.short}`"
+                @focus="transientPair = pairFor(cell.row, cell.column)"
+                @blur="transientPair = null"
+                @mouseenter="transientPair = pairFor(cell.row, cell.column)"
+                @mouseleave="transientPair = null"
+                @click="pinPair(pairFor(cell.row, cell.column))"
+                @keydown="onCellKeydown($event, cell.row, cell.column)"
+              >
+                <span class="text-sm font-semibold leading-none">Aa</span>
+                <span
+                  class="cell-meta"
+                  :style="{
+                    background:
+                      cell.background.metadataColor === '#000'
+                        ? 'rgb(255 255 255 / 78%)'
+                        : 'rgb(0 0 0 / 66%)',
+                    color: cell.background.metadataColor,
+                  }"
+                >
+                  <template v-if="standard !== 'all'"
+                    ><CheckIcon v-if="cell.passes" /><XIcon v-else
+                  /></template>
+                  {{ cell.ratio.toFixed(2) }}
+                </span>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </template>
 
 <style scoped>
-.analysis-split {
+.contrast-analysis {
   display: grid;
-  gap: 16px;
+  gap: 12px;
+}
+.contrast-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+}
+.instrument-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+}
+.matrix-axis {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-inline: 2px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted-foreground);
 }
 .matrix-scroll {
   max-height: min(78vh, 1120px);
@@ -424,26 +460,50 @@ function outcome(ratio: number, minimum: number): string {
   gap: 2px;
   border-radius: 4px;
   padding-inline: 3px;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 .cell-meta svg {
-  width: 10px;
-  height: 10px;
+  width: 11px;
+  height: 11px;
 }
 .pair-detail {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.1fr) minmax(320px, 1fr);
+  gap: 16px;
   border-radius: 10px;
   background: var(--muted);
   padding: 16px;
   box-shadow: inset 0 0 0 1px var(--border);
 }
+.pair-preview,
+.pair-results {
+  min-width: 0;
+}
+.pair-results {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
 .pair-sample {
-  min-height: 180px;
+  min-height: 124px;
+  margin-top: 12px;
   border-radius: 8px;
-  padding: 20px;
+  padding: 16px;
   outline: 1px solid rgb(0 0 0 / 10%);
   outline-offset: -1px;
+}
+.ratio-summary {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+}
+.result-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
 }
 .result-tile {
   display: grid;
@@ -460,46 +520,41 @@ function outcome(ratio: number, minimum: number): string {
   grid-column: 2;
   color: var(--muted-foreground);
 }
+.alternative-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
 .alternative-row {
   display: flex;
   width: 100%;
-  min-height: 40px;
+  min-width: 0;
+  min-height: 36px;
   align-items: center;
-  gap: 9px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  padding: 6px;
-  color: inherit;
+  gap: 8px;
+  border-radius: 6px;
+  padding: 6px 8px;
   text-align: start;
-  transition: background-color 120ms ease-out;
-}
-.alternative-row:hover,
-.alternative-row:focus-visible {
-  background: var(--accent);
 }
 .contrast-analysis {
-  --matrix-cell: clamp(56px, 4.1vw, 88px);
+  --matrix-cell: clamp(56px, 6.2vw, 88px);
 }
-@media (min-width: 1280px) {
-  .analysis-split {
-    grid-template-columns: minmax(0, 1fr) minmax(340px, 400px);
-  }
+@media (max-width: 767px) {
   .pair-detail {
-    position: sticky;
-    top: 164px;
-    align-self: start;
+    grid-template-columns: 1fr;
   }
 }
-@media (min-width: 1800px) {
-  .analysis-split {
-    grid-template-columns: max-content 400px;
-    justify-content: center;
+@media (max-width: 639px) {
+  .contrast-toolbar {
+    align-items: stretch;
+  }
+  .alternative-grid {
+    grid-template-columns: 1fr;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .matrix-cell,
-  .alternative-row {
+  .matrix-cell {
     transition: none;
   }
 }

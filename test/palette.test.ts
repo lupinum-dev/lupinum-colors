@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { signedHueDelta } from "../src/color.js";
 import { generatePalette, generateVariants, inferAnchor } from "../src/palette.js";
 import { loadTailwindFamilies, loadTailwindReference } from "../src/tailwind-data.js";

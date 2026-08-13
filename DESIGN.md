@@ -158,11 +158,12 @@ The workbench is deliberately achromatic in both themes. Neutral surfaces and re
 
 ### Hierarchy
 
-- **Headline:** Semibold and compact; used for the application name and primary workbench headings.
-- **Title:** Small, semibold, tracked, and uppercase in inspector section headers; use it as an instrument label, not as decorative display type.
-- **Body:** The default size for descriptions and control text, with relaxed line height where instructions need two lines.
-- **Label:** Medium-weight, short field labels and compact button copy.
-- **Data:** Monospaced values, hex and OKLCH readouts, badges, keyboard hints, and code export.
+- **Application title:** 13px/16px semibold; reserved for the compact 52px toolbar identity.
+- **Panel title:** 14px/20px medium in Geist; matches the shared small shadcn card title.
+- **Body and description:** 14px/20px regular; the default for supporting copy and control text.
+- **Label:** 14px/16px medium; matches the shared shadcn label and keeps every field consistent.
+- **Caption and badge:** 12px/16px; used for quiet hints, state labels, and compact metadata.
+- **Dense data:** 11px/16px in Geist Mono only where the editor or 13×13 matrix needs the extra density.
 
 ### Named Rules
 

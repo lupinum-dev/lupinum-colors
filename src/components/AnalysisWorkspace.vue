@@ -40,15 +40,15 @@ async function copyExport(): Promise<void> {
       <div class="analysis-toolbar sticky top-[52px] z-20 border-b px-3 pt-3 sm:px-4">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 class="text-[13px] font-semibold">Validate and export</h2>
-            <p class="text-[13px] text-muted-foreground">
-              Test the live palette in production contexts.
+            <h2 class="cn-font-heading text-sm font-medium">Test and export</h2>
+            <p class="text-sm text-pretty text-muted-foreground">
+              Preview the palette, check contrast, and copy production-ready values.
             </p>
           </div>
           <TabsList variant="line" class="h-9 bg-transparent p-0">
             <TabsTrigger value="preview">Preview</TabsTrigger>
             <TabsTrigger value="contrast">Contrast</TabsTrigger>
-            <TabsTrigger value="tokens">Tokens</TabsTrigger>
+            <TabsTrigger value="tokens">Export</TabsTrigger>
           </TabsList>
         </div>
         <div
@@ -58,7 +58,7 @@ async function copyExport(): Promise<void> {
           <div
             v-for="entry in shades"
             :key="entry.shade"
-            class="flex min-w-0 items-center justify-center text-[10px] font-semibold tabular-nums"
+            class="flex min-w-0 items-center justify-center text-xs font-medium tabular-nums"
             :style="{
               background: entry.css,
               color: entry.contrastOnBlack >= entry.contrastOnWhite ? '#000' : '#fff',
@@ -80,9 +80,9 @@ async function copyExport(): Promise<void> {
       <TabsContent value="tokens" class="m-0">
         <div class="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
           <div>
-            <h3 class="text-[13px] font-semibold">Production tokens</h3>
-            <p class="text-[13px] text-muted-foreground">
-              Copy the current palette without hidden transformations.
+            <h3 class="cn-font-heading text-sm font-medium">Export palette</h3>
+            <p class="text-sm text-pretty text-muted-foreground">
+              Choose a format, then copy the displayed color values.
             </p>
           </div>
           <div class="flex items-center gap-2">
@@ -105,7 +105,7 @@ async function copyExport(): Promise<void> {
             <Button variant="outline" size="sm" @click="copyExport">
               <CheckIcon v-if="copied" data-icon="inline-start" />
               <ClipboardIcon v-else data-icon="inline-start" />
-              {{ copied ? 'Copied' : 'Copy' }}
+              {{ copied ? 'Copied' : 'Copy code' }}
             </Button>
           </div>
         </div>
