@@ -8,7 +8,9 @@ import { ToggleGroupRoot, useForwardPropsEmits } from 'reka-ui'
 import { provide } from 'vue'
 import { cn } from '@/lib/utils'
 
-type ToggleGroupVariants = VariantProps<typeof toggleVariants>
+type ToggleGroupVariants = VariantProps<typeof toggleVariants> & {
+  orientation?: ToggleGroupRootProps['orientation']
+}
 
 const props = withDefaults(
   defineProps<
@@ -30,6 +32,7 @@ provide('toggleGroup', {
   variant: props.variant,
   size: props.size,
   spacing: props.spacing,
+  orientation: props.orientation ?? 'horizontal',
 })
 
 const delegatedProps = reactiveOmit(props, 'class', 'size', 'variant')
@@ -49,7 +52,8 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
     v-bind="forwarded"
     :class="
       cn(
-        'rounded-md data-[spacing=0]:data-[variant=outline]:shadow-xs group/toggle-group flex w-fit flex-row items-center gap-[--spacing(var(--gap))] data-vertical:flex-col data-vertical:items-stretch',
+        'rounded-md data-[spacing=0]:data-[variant=outline]:shadow-xs group/toggle-group flex w-fit gap-[--spacing(var(--gap))]',
+        props.orientation === 'vertical' ? 'flex-col items-stretch' : 'flex-row items-center',
         props.class,
       )
     "

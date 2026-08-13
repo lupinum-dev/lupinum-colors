@@ -311,6 +311,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
                     variant="outline"
                     size="sm"
                     :model-value="channelMode"
+                    aria-label="Color model"
                     @update:model-value="selectChannelMode"
                   >
                     <ToggleGroupItem v-for="mode in MODES" :key="mode" :value="mode">
@@ -325,6 +326,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
                     variant="outline"
                     size="sm"
                     :model-value="visibleChannelKeys"
+                    aria-label="Visible color channels"
                     @update:model-value="selectVisibleChannels"
                   >
                     <ToggleGroupItem

@@ -304,60 +304,67 @@ function contrastBadge(ratio: number): string {
               <Badge variant="secondary" class="font-mono">{{ overlay.score.toFixed(0) }}%</Badge>
             </div>
             <div class="reference-controls">
-              <input
-                type="color"
-                :value="overlay.color"
-                :aria-label="`${overlay.name} line color`"
-                @input="
-                  updateOverlay(overlay.name, { color: ($event.target as HTMLInputElement).value })
-                "
-              />
-              <NativeSelect
-                :model-value="overlay.line"
-                :aria-label="`${overlay.name} line style`"
-                @update:model-value="
-                  updateOverlay(overlay.name, {
-                    line: $event as typeof overlay.line,
-                  })
-                "
-              >
-                <NativeSelectOption
-                  v-for="option in OVERLAY_LINE_OPTIONS"
-                  :key="option.value"
-                  :value="option.value"
-                  >{{ option.label }}</NativeSelectOption
+              <div class="reference-style-row">
+                <input
+                  type="color"
+                  :value="overlay.color"
+                  :aria-label="`${overlay.name} line color`"
+                  @input="
+                    updateOverlay(overlay.name, {
+                      color: ($event.target as HTMLInputElement).value,
+                    })
+                  "
+                />
+                <NativeSelect
+                  :model-value="overlay.line"
+                  :aria-label="`${overlay.name} line style`"
+                  @update:model-value="
+                    updateOverlay(overlay.name, {
+                      line: $event as typeof overlay.line,
+                    })
+                  "
                 >
-              </NativeSelect>
-              <NativeSelect
-                :model-value="overlay.marker"
-                :aria-label="`${overlay.name} marker shape`"
-                @update:model-value="
-                  updateOverlay(overlay.name, {
-                    marker: $event as typeof overlay.marker,
-                  })
-                "
-              >
-                <NativeSelectOption
-                  v-for="marker in OVERLAY_MARKER_OPTIONS"
-                  :key="marker"
-                  :value="marker"
-                  >{{ marker }}</NativeSelectOption
+                  <NativeSelectOption
+                    v-for="option in OVERLAY_LINE_OPTIONS"
+                    :key="option.value"
+                    :value="option.value"
+                    >{{ option.label }}</NativeSelectOption
+                  >
+                </NativeSelect>
+                <NativeSelect
+                  :model-value="overlay.marker"
+                  :aria-label="`${overlay.name} marker shape`"
+                  @update:model-value="
+                    updateOverlay(overlay.name, {
+                      marker: $event as typeof overlay.marker,
+                    })
+                  "
                 >
-              </NativeSelect>
-              <Button type="button" variant="ghost" size="xs" @click="soloOverlay(overlay.name)"
-                >Solo</Button
-              >
-              <Button type="button" variant="outline" size="xs" @click="fitFrom(overlay.name)"
-                >Fit selection</Button
-              >
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-xs"
-                :aria-label="`Remove ${overlay.name} reference`"
-                @click="removeOverlay(overlay.name)"
-                ><XIcon
-              /></Button>
+                  <NativeSelectOption
+                    v-for="marker in OVERLAY_MARKER_OPTIONS"
+                    :key="marker"
+                    :value="marker"
+                    >{{ marker }}</NativeSelectOption
+                  >
+                </NativeSelect>
+              </div>
+              <div class="reference-action-row">
+                <Button type="button" variant="ghost" size="xs" @click="soloOverlay(overlay.name)"
+                  >Solo</Button
+                >
+                <Button type="button" variant="outline" size="xs" @click="fitFrom(overlay.name)"
+                  >Fit selection</Button
+                >
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  class="ms-auto"
+                  :aria-label="`Remove ${overlay.name} reference`"
+                  @click="removeOverlay(overlay.name)"
+                  ><XIcon
+                /></Button>
+              </div>
             </div>
           </article>
         </div>
@@ -794,7 +801,8 @@ input[type='color'] {
   opacity: 0.55;
 }
 .reference-title,
-.reference-controls {
+.reference-style-row,
+.reference-action-row {
   display: flex;
   align-items: center;
   gap: 7px;
@@ -807,12 +815,21 @@ input[type='color'] {
   text-transform: capitalize;
 }
 .reference-controls {
+  display: grid;
+  gap: 8px;
   margin-top: 8px;
-  flex-wrap: wrap;
 }
-.reference-controls > :deep([data-slot='native-select-wrapper']) {
+.reference-style-row > :deep([data-slot='native-select-wrapper']) {
   min-width: 90px;
   flex: 1;
+}
+input[type='color']::-webkit-color-swatch {
+  border: 0;
+  border-radius: var(--radius-xs);
+}
+input[type='color']::-moz-color-swatch {
+  border: 0;
+  border-radius: var(--radius-xs);
 }
 .sample circle,
 .sample rect,

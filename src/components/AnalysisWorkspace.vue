@@ -91,6 +91,7 @@ async function copyExport(): Promise<void> {
               variant="outline"
               size="sm"
               :model-value="exportFormat"
+              aria-label="Token export format"
               @update:model-value="selectExportFormat"
             >
               <ToggleGroupItem
@@ -108,7 +109,7 @@ async function copyExport(): Promise<void> {
             </Button>
           </div>
         </div>
-        <ScrollArea class="h-[480px] w-full bg-muted/20">
+        <ScrollArea class="h-[480px] w-full rounded-b-xl bg-muted/20">
           <pre class="min-w-max p-4 font-mono text-xs leading-relaxed text-foreground">{{
             exportText
           }}</pre>
@@ -121,6 +122,8 @@ async function copyExport(): Promise<void> {
 
 <style scoped>
 .analysis-toolbar {
+  border-start-start-radius: var(--radius-xl);
+  border-start-end-radius: var(--radius-xl);
   background: color-mix(in oklch, var(--card) 90%, transparent);
   backdrop-filter: blur(16px) saturate(135%);
 }

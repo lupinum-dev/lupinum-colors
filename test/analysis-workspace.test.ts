@@ -33,7 +33,10 @@ describe('analysis workspace', () => {
     })
 
     expect(wrapper.get('.preview-stage').classes()).not.toContain('preview-dark')
-    await wrapper.get('button[value="components"]').trigger('click')
+    const scenarioTabs = wrapper.findAll('[role="tab"]')
+    await scenarioTabs
+      .find((tab) => tab.text() === 'Components')!
+      .trigger('mousedown', { button: 0 })
     expect(wrapper.get<HTMLSelectElement>('#preview-role').element.value).toBe('designer')
     await wrapper.get('button[value="dark"]').trigger('click')
     expect(wrapper.get('.preview-stage').classes()).toContain('preview-dark')

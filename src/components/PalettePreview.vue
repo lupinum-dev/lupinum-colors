@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Slider } from '@/components/ui/slider'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 
 type PreviewScenario = 'workspace' | 'components'
@@ -55,16 +56,13 @@ const primaryForeground = computed(() => {
 const chartValues = [38, 54, 43, 70, 62, 88, 76]
 const chartShades = [300, 400, 500, 600, 500, 700, 800] as const
 
-function selectScenario(value: unknown): void {
-  if (value === 'workspace' || value === 'components') scenario.value = value
-}
 function selectAppearance(value: unknown): void {
   if (value === 'auto' || value === 'light' || value === 'dark') appearance.value = value
 }
 </script>
 
 <template>
-  <div class="preview-lab" :style="previewStyle">
+  <Tabs v-model="scenario" class="preview-lab gap-0" :style="previewStyle">
     <div class="flex flex-wrap items-center justify-between gap-3 pb-3">
       <div>
         <h3 class="text-[13px] font-semibold">Palette preview</h3>
@@ -73,17 +71,10 @@ function selectAppearance(value: unknown): void {
         </p>
       </div>
       <div class="flex flex-wrap items-center gap-2">
-        <ToggleGroup
-          type="single"
-          variant="outline"
-          size="sm"
-          :model-value="scenario"
-          aria-label="Preview scenario"
-          @update:model-value="selectScenario"
-        >
-          <ToggleGroupItem value="workspace">Workspace</ToggleGroupItem>
-          <ToggleGroupItem value="components">Components</ToggleGroupItem>
-        </ToggleGroup>
+        <TabsList aria-label="Preview scenario">
+          <TabsTrigger value="workspace">Workspace</TabsTrigger>
+          <TabsTrigger value="components">Components</TabsTrigger>
+        </TabsList>
         <ToggleGroup
           type="single"
           variant="outline"
@@ -103,226 +94,235 @@ function selectAppearance(value: unknown): void {
       class="preview-stage overflow-hidden rounded-[10px]"
       :class="{ 'preview-dark': previewIsDark }"
     >
-      <div v-if="scenario === 'workspace'" class="workspace-scene">
-        <aside class="workspace-sidebar">
-          <div class="flex items-center gap-2 px-3 py-3">
-            <span class="size-6 rounded-md preview-primary" />
-            <span class="text-sm font-semibold">Northstar</span>
-          </div>
-          <nav aria-label="Preview navigation" class="space-y-1 px-2">
-            <button
-              v-for="item in ['Overview', 'Projects', 'Reports', 'Settings']"
-              :key="item"
-              :class="{ 'preview-nav-active': workspaceSection === item }"
-              :aria-current="workspaceSection === item ? 'page' : undefined"
-              @click="workspaceSection = item"
-            >
-              {{ item }}
-            </button>
-          </nav>
-          <div class="mt-auto border-t preview-border p-3">
-            <p class="text-xs preview-muted">Palette in use</p>
-            <p class="mt-1 font-mono text-[11px]">{{ name }}-500</p>
-          </div>
-        </aside>
-
-        <div class="min-w-0">
-          <header
-            class="flex flex-wrap items-center justify-between gap-3 border-b preview-border px-4 py-3"
-          >
-            <div>
-              <p class="text-sm font-semibold">{{ workspaceTitle }}</p>
-              <p class="text-xs preview-muted">Thursday, 13 August</p>
+      <TabsContent value="workspace" class="m-0">
+        <div class="workspace-scene">
+          <aside class="workspace-sidebar">
+            <div class="flex items-center gap-2 px-3 py-3">
+              <span class="size-6 rounded-md preview-primary" />
+              <span class="text-sm font-semibold">Northstar</span>
             </div>
-            <Button
-              class="preview-primary border-0"
-              size="sm"
-              :style="{ color: primaryForeground }"
-              :disabled="projectCreated"
-              @click="projectCreated = true"
-            >
-              {{ projectCreated ? 'Project created' : 'Create project' }}
-            </Button>
-          </header>
-
-          <div class="p-3 sm:p-4">
-            <div class="metric-grid">
-              <article
-                v-for="metric in [
-                  { label: 'Revenue', value: '€48.2k', change: '+12.4%', icon: CreditCardIcon },
-                  { label: 'Customers', value: '1,429', change: '+8.1%', icon: UsersIcon },
-                  { label: 'Conversion', value: '4.8%', change: '+0.6%', icon: TrendingUpIcon },
-                ]"
-                :key="metric.label"
-                class="metric-item"
+            <nav aria-label="Preview navigation" class="space-y-1 px-2">
+              <button
+                v-for="item in ['Overview', 'Projects', 'Reports', 'Settings']"
+                :key="item"
+                :class="{ 'preview-nav-active': workspaceSection === item }"
+                :aria-current="workspaceSection === item ? 'page' : undefined"
+                @click="workspaceSection = item"
               >
-                <component :is="metric.icon" class="size-4 preview-muted" />
-                <p class="mt-4 text-xs preview-muted">{{ metric.label }}</p>
-                <div class="mt-1 flex items-end justify-between gap-3">
-                  <p class="text-xl font-semibold tracking-tight tabular-nums">
-                    {{ metric.value }}
-                  </p>
-                  <Badge class="preview-soft border-0 tabular-nums">{{ metric.change }}</Badge>
-                </div>
-              </article>
+                {{ item }}
+              </button>
+            </nav>
+            <div class="mt-auto border-t preview-border p-3">
+              <p class="text-xs preview-muted">Palette in use</p>
+              <p class="mt-1 font-mono text-[11px]">{{ name }}-500</p>
             </div>
+          </aside>
 
-            <div class="content-grid mt-3">
-              <article class="content-panel">
-                <div class="flex items-start justify-between gap-3">
-                  <div>
-                    <p class="text-sm font-semibold">Performance</p>
-                    <p class="text-xs preview-muted">Last seven months</p>
-                  </div>
-                  <Badge variant="outline">All channels</Badge>
-                </div>
-                <div class="mt-5 flex h-48 items-end gap-2">
-                  <div
-                    v-for="(value, index) in chartValues"
-                    :key="index"
-                    class="preview-track flex h-full min-w-0 flex-1 items-end rounded-md"
-                  >
-                    <span
-                      class="w-full rounded-md"
-                      :style="{
-                        height: `${value}%`,
-                        background: `var(--preview-${chartShades[index]})`,
-                      }"
-                    />
-                  </div>
-                </div>
-              </article>
+          <div class="min-w-0">
+            <header
+              class="flex flex-wrap items-center justify-between gap-3 border-b preview-border px-4 py-3"
+            >
+              <div>
+                <p class="text-sm font-semibold">{{ workspaceTitle }}</p>
+                <p class="text-xs preview-muted">Thursday, 13 August</p>
+              </div>
+              <Button
+                class="preview-primary border-0"
+                size="sm"
+                :style="{ color: primaryForeground }"
+                :disabled="projectCreated"
+                @click="projectCreated = true"
+              >
+                {{ projectCreated ? 'Project created' : 'Create project' }}
+              </Button>
+            </header>
 
-              <article class="content-panel">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <p class="text-sm font-semibold">Active projects</p>
-                    <p class="text-xs preview-muted">Updated just now</p>
+            <div class="p-3 sm:p-4">
+              <div class="metric-grid">
+                <article
+                  v-for="metric in [
+                    { label: 'Revenue', value: '€48.2k', change: '+12.4%', icon: CreditCardIcon },
+                    { label: 'Customers', value: '1,429', change: '+8.1%', icon: UsersIcon },
+                    { label: 'Conversion', value: '4.8%', change: '+0.6%', icon: TrendingUpIcon },
+                  ]"
+                  :key="metric.label"
+                  class="metric-item"
+                >
+                  <component :is="metric.icon" class="size-4 preview-muted" />
+                  <p class="mt-4 text-xs preview-muted">{{ metric.label }}</p>
+                  <div class="mt-1 flex items-end justify-between gap-3">
+                    <p class="text-xl font-semibold tracking-tight tabular-nums">
+                      {{ metric.value }}
+                    </p>
+                    <Badge class="preview-soft border-0 tabular-nums">{{ metric.change }}</Badge>
                   </div>
-                  <span class="preview-muted" aria-hidden="true"
-                    ><MoreHorizontalIcon class="size-4"
-                  /></span>
-                </div>
-                <div class="mt-3 divide-y preview-divide">
-                  <div
-                    v-for="(project, index) in ['Canopy', 'Riverbank', 'Common Ground']"
-                    :key="project"
-                    class="flex items-center gap-3 py-3"
-                  >
-                    <span
-                      class="size-2.5 rounded-full"
-                      :style="{ background: `var(--preview-${[400, 600, 800][index]})` }"
-                    />
-                    <div class="min-w-0 flex-1">
-                      <p class="text-sm font-medium">{{ project }}</p>
-                      <p class="text-xs preview-muted">{{ 8 + index * 3 }} open tasks</p>
+                </article>
+              </div>
+
+              <div class="content-grid mt-3">
+                <article class="content-panel">
+                  <div class="flex items-start justify-between gap-3">
+                    <div>
+                      <p class="text-sm font-semibold">Performance</p>
+                      <p class="text-xs preview-muted">Last seven months</p>
                     </div>
-                    <ArrowUpRightIcon class="size-4 preview-muted" />
+                    <Badge variant="outline">All channels</Badge>
                   </div>
-                </div>
-              </article>
+                  <div class="mt-5 flex h-48 items-end gap-2">
+                    <div
+                      v-for="(value, index) in chartValues"
+                      :key="index"
+                      class="preview-track flex h-full min-w-0 flex-1 items-end rounded-md"
+                    >
+                      <span
+                        class="w-full rounded-md"
+                        :style="{
+                          height: `${value}%`,
+                          background: `var(--preview-${chartShades[index]})`,
+                        }"
+                      />
+                    </div>
+                  </div>
+                </article>
+
+                <article class="content-panel">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <p class="text-sm font-semibold">Active projects</p>
+                      <p class="text-xs preview-muted">Updated just now</p>
+                    </div>
+                    <span class="preview-muted" aria-hidden="true"
+                      ><MoreHorizontalIcon class="size-4"
+                    /></span>
+                  </div>
+                  <div class="mt-3 divide-y preview-divide">
+                    <div
+                      v-for="(project, index) in ['Canopy', 'Riverbank', 'Common Ground']"
+                      :key="project"
+                      class="flex items-center gap-3 py-3"
+                    >
+                      <span
+                        class="size-2.5 rounded-full"
+                        :style="{ background: `var(--preview-${[400, 600, 800][index]})` }"
+                      />
+                      <div class="min-w-0 flex-1">
+                        <p class="text-sm font-medium">{{ project }}</p>
+                        <p class="text-xs preview-muted">{{ 8 + index * 3 }} open tasks</p>
+                      </div>
+                      <ArrowUpRightIcon class="size-4 preview-muted" />
+                    </div>
+                  </div>
+                </article>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </TabsContent>
 
-      <div v-else class="specimen-grid">
-        <section class="specimen-group">
-          <div>
-            <h4>Actions</h4>
-            <p>Hierarchy and interaction states.</p>
-          </div>
-          <div class="mt-5 flex flex-wrap gap-2">
-            <Button class="preview-primary border-0" :style="{ color: primaryForeground }"
-              >Create project</Button
-            >
-            <Button class="preview-secondary border-0">Save draft</Button>
-            <Button variant="outline">Outline</Button>
-            <Button variant="ghost">Cancel</Button>
-            <Button disabled class="preview-disabled">Unavailable</Button>
-            <Button variant="outline" size="icon" aria-label="Open more actions"
-              ><MoreHorizontalIcon
-            /></Button>
-          </div>
-          <div class="mt-5 flex flex-wrap gap-2">
-            <Badge
-              v-for="shade in [200, 400, 600, 800]"
-              :key="shade"
-              class="border-0"
-              :style="{
-                background: `var(--preview-${shade})`,
-                color: shade < 500 ? 'var(--preview-950)' : 'var(--preview-50)',
-              }"
-            >
-              {{ name }}-{{ shade }}
-            </Badge>
-          </div>
-        </section>
+      <TabsContent value="components" class="m-0">
+        <div class="specimen-grid">
+          <section class="specimen-group">
+            <div>
+              <h4>Actions</h4>
+              <p>Hierarchy and interaction states.</p>
+            </div>
+            <div class="mt-5 flex flex-wrap gap-2">
+              <Button class="preview-primary border-0" :style="{ color: primaryForeground }"
+                >Create project</Button
+              >
+              <Button class="preview-secondary border-0">Save draft</Button>
+              <Button variant="outline">Outline</Button>
+              <Button variant="ghost">Cancel</Button>
+              <Button disabled class="preview-disabled">Unavailable</Button>
+              <Button variant="outline" size="icon" aria-label="Open more actions"
+                ><MoreHorizontalIcon
+              /></Button>
+            </div>
+            <div class="mt-5 flex flex-wrap gap-2">
+              <Badge
+                v-for="shade in [200, 400, 600, 800]"
+                :key="shade"
+                class="border-0"
+                :style="{
+                  background: `var(--preview-${shade})`,
+                  color: shade < 500 ? 'var(--preview-950)' : 'var(--preview-50)',
+                }"
+              >
+                {{ name }}-{{ shade }}
+              </Badge>
+            </div>
+          </section>
 
-        <section class="specimen-group">
-          <div>
-            <h4>Fields</h4>
-            <p>Input, selection, and focus roles.</p>
-          </div>
-          <div class="mt-5 grid gap-4">
-            <div class="grid gap-2">
-              <Label for="preview-email">Work email</Label>
-              <Input id="preview-email" value="studio@example.com" class="preview-input" readonly />
+          <section class="specimen-group">
+            <div>
+              <h4>Fields</h4>
+              <p>Input, selection, and focus roles.</p>
             </div>
-            <div class="grid gap-2">
-              <Label for="preview-role">Role</Label>
-              <NativeSelect id="preview-role" v-model="role" class="preview-input w-full">
-                <NativeSelectOption value="designer">Designer</NativeSelectOption>
-                <NativeSelectOption value="developer">Developer</NativeSelectOption>
-              </NativeSelect>
-            </div>
-            <label class="flex items-center gap-3 text-sm">
-              <Checkbox v-model="subscribed" class="preview-checkbox" />
-              Send weekly palette reports
-            </label>
-            <div class="grid gap-2">
-              <div class="flex items-center justify-between text-sm">
-                <Label>Accent intensity</Label
-                ><output class="font-mono text-xs tabular-nums">{{ intensity[0] }}%</output>
+            <div class="mt-5 grid gap-4">
+              <div class="grid gap-2">
+                <Label for="preview-email">Work email</Label>
+                <Input
+                  id="preview-email"
+                  value="studio@example.com"
+                  class="preview-input"
+                  readonly
+                />
               </div>
-              <Slider v-model="intensity" :max="100" class="preview-slider" />
+              <div class="grid gap-2">
+                <Label for="preview-role">Role</Label>
+                <NativeSelect id="preview-role" v-model="role" class="preview-input w-full">
+                  <NativeSelectOption value="designer">Designer</NativeSelectOption>
+                  <NativeSelectOption value="developer">Developer</NativeSelectOption>
+                </NativeSelect>
+              </div>
+              <label class="flex items-center gap-3 text-sm">
+                <Checkbox v-model="subscribed" class="preview-checkbox" />
+                Send weekly palette reports
+              </label>
+              <div class="grid gap-2">
+                <div class="flex items-center justify-between text-sm">
+                  <Label>Accent intensity</Label
+                  ><output class="font-mono text-xs tabular-nums">{{ intensity[0] }}%</output>
+                </div>
+                <Slider v-model="intensity" :max="100" class="preview-slider" />
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        <section class="specimen-group">
-          <div>
-            <h4>Feedback</h4>
-            <p>Status that remains legible without hue.</p>
-          </div>
-          <Alert class="mt-5 preview-soft-border">
-            <CheckCircle2Icon />
-            <AlertTitle>Contrast review passed</AlertTitle>
-            <AlertDescription>Primary actions meet the selected AA requirement.</AlertDescription>
-          </Alert>
-          <div class="mt-5 grid gap-3">
-            <div
-              v-for="(label, index) in [
-                'Tokens synchronized',
-                'Palette published',
-                'Review requested',
-              ]"
-              :key="label"
-              class="flex items-center gap-3 border-b preview-border pb-3 last:border-0 last:pb-0"
-            >
-              <span class="flex size-7 items-center justify-center rounded-md preview-soft"
-                ><CheckCircle2Icon class="size-4"
-              /></span>
-              <span class="text-sm">{{ label }}</span>
-              <Badge variant="outline" class="ms-auto">{{
-                index === 0 ? 'Done' : index === 1 ? 'Live' : 'Open'
-              }}</Badge>
+          <section class="specimen-group">
+            <div>
+              <h4>Feedback</h4>
+              <p>Status that remains legible without hue.</p>
             </div>
-          </div>
-        </section>
-      </div>
+            <Alert class="mt-5 preview-soft-border">
+              <CheckCircle2Icon />
+              <AlertTitle>Contrast review passed</AlertTitle>
+              <AlertDescription>Primary actions meet the selected AA requirement.</AlertDescription>
+            </Alert>
+            <div class="mt-5 grid gap-3">
+              <div
+                v-for="(label, index) in [
+                  'Tokens synchronized',
+                  'Palette published',
+                  'Review requested',
+                ]"
+                :key="label"
+                class="flex items-center gap-3 border-b preview-border pb-3 last:border-0 last:pb-0"
+              >
+                <span class="flex size-7 items-center justify-center rounded-md preview-soft"
+                  ><CheckCircle2Icon class="size-4"
+                /></span>
+                <span class="text-sm">{{ label }}</span>
+                <Badge variant="outline" class="ms-auto">{{
+                  index === 0 ? 'Done' : index === 1 ? 'Live' : 'Open'
+                }}</Badge>
+              </div>
+            </div>
+          </section>
+        </div>
+      </TabsContent>
     </div>
-  </div>
+  </Tabs>
 </template>
 
 <style scoped>

@@ -204,6 +204,8 @@ The system uses one coherent radius family derived from a 10px base: gently curv
 
 The palette canvas is geometrically stricter than the surrounding chrome. Its eleven shade strips meet without internal rounding, while only the outer editor frame is clipped. Curve handles use circles, reference markers vary deliberately, and range controls use square handles so interaction roles stay visually distinct.
 
+Use the component that matches the interaction. Tabs switch views, joined ToggleGroups select one mode or filter, and independent actions remain separate Buttons. Joined controls use one rounded 8px perimeter with flush internal edges; unrelated actions keep their own 8px corners and spacing. Palette strips, matrix/table geometry, line tabs, and divided lists remain continuous data structures rather than collections of floating pills.
+
 **The One Radius Family Rule.** Reuse the established 6px, 8px, 10px, and 14px steps. Do not introduce unrelated corner values to create emphasis.
 
 ## Components

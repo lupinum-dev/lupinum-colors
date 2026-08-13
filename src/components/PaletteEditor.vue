@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { XIcon } from '@lucide/vue'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import type { Channel } from '@/app/channels'
 import { OVERLAY_DASH, trianglePoints } from '@/app/overlay-style'
@@ -32,6 +33,7 @@ import {
   type SelectionCurve,
 } from '@/app/palette-store'
 import { signedHueDelta } from '@/color'
+import { Button } from '@/components/ui/button'
 import { SHADE_NAMES, type OklchColor, type Shade } from '@/types'
 
 const PAD_TOP = 28
@@ -407,9 +409,16 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
       <span
         >{{ selectedShadeRange.length }} shade{{ selectedShadeRange.length === 1 ? '' : 's' }}</span
       >
-      <button type="button" aria-label="Clear shade selection" @click="clearShadeSelection">
-        ×
-      </button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-xs"
+        class="text-inherit hover:bg-white/15 hover:text-inherit"
+        aria-label="Clear shade selection"
+        @click="clearShadeSelection"
+      >
+        <XIcon />
+      </Button>
     </div>
 
     <svg v-if="size.width" class="overlay" :width="size.width" :height="size.height">
@@ -658,7 +667,7 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
   padding: 5px 7px 5px 9px;
   transform: translateX(-50%);
   border: 1px solid rgb(255 255 255 / 42%);
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   background: rgb(15 16 20 / 88%);
   color: #f2f3f5;
   font:
@@ -667,12 +676,6 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
 }
 .selection-badge span {
   color: #9699a3;
-}
-.selection-badge button {
-  min-height: 20px;
-  padding: 0 4px;
-  border: 0;
-  background: transparent;
 }
 .overlay {
   position: absolute;
