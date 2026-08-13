@@ -115,7 +115,7 @@ const overlayCurves = computed<OverlayCurve[]>(() =>
 
 function channelColor(key: string): string {
   if (key === 'h') return '#f291d1'
-  if (key === 'c' || key === 's') return '#ffc167'
+  if (key === 'c' || key === 's') return '#a78bfa'
   return '#69d7ff'
 }
 
@@ -404,8 +404,12 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
 
     <div v-if="shadeSelection" class="selection-badge">
       <strong>{{ shadeSelection.from }}–{{ shadeSelection.to }}</strong>
-      <span>{{ selectedShadeRange.length }} shade{{ selectedShadeRange.length === 1 ? '' : 's' }}</span>
-      <button type="button" aria-label="Clear shade selection" @click="clearShadeSelection">×</button>
+      <span
+        >{{ selectedShadeRange.length }} shade{{ selectedShadeRange.length === 1 ? '' : 's' }}</span
+      >
+      <button type="button" aria-label="Clear shade selection" @click="clearShadeSelection">
+        ×
+      </button>
     </div>
 
     <svg v-if="size.width" class="overlay" :width="size.width" :height="size.height">
@@ -422,7 +426,13 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
 
       <g v-for="curve in baselineCurves" :key="`baseline-${curve.channel.key}`" class="baseline">
         <polyline :points="curve.polyline" />
-        <circle v-for="point in curve.points" :key="point.shade" :cx="point.x" :cy="point.y" r="3" />
+        <circle
+          v-for="point in curve.points"
+          :key="point.shade"
+          :cx="point.x"
+          :cy="point.y"
+          r="3"
+        />
       </g>
 
       <g
@@ -434,8 +444,21 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
         <polyline :points="curve.polyline" :stroke-dasharray="OVERLAY_DASH[curve.overlay.line]" />
         <template v-for="point in curve.points" :key="point.shade">
           <circle v-if="curve.overlay.marker === 'circle'" :cx="point.x" :cy="point.y" r="3.5" />
-          <rect v-else-if="curve.overlay.marker === 'square'" :x="point.x - 3.3" :y="point.y - 3.3" width="6.6" height="6.6" />
-          <rect v-else-if="curve.overlay.marker === 'diamond'" :x="point.x - 3.2" :y="point.y - 3.2" width="6.4" height="6.4" :transform="`rotate(45 ${point.x} ${point.y})`" />
+          <rect
+            v-else-if="curve.overlay.marker === 'square'"
+            :x="point.x - 3.3"
+            :y="point.y - 3.3"
+            width="6.6"
+            height="6.6"
+          />
+          <rect
+            v-else-if="curve.overlay.marker === 'diamond'"
+            :x="point.x - 3.2"
+            :y="point.y - 3.2"
+            width="6.4"
+            height="6.4"
+            :transform="`rotate(45 ${point.x} ${point.y})`"
+          />
           <polygon v-else :points="trianglePoints(point.x, point.y, 4.4)" />
         </template>
       </g>
@@ -449,11 +472,27 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
         <polyline :points="curve.polyline" />
       </g>
 
-      <g v-for="curve in curves" :key="curve.channel.key" :class="{ muted: shadeSelection && curve.channel.key !== selectionChannelKey }">
-        <text class="curve-label" :x="curve.points[0].x - 18" :y="labelY(curve)">{{ curve.channel.label }}</text>
+      <g
+        v-for="curve in curves"
+        :key="curve.channel.key"
+        :class="{ muted: shadeSelection && curve.channel.key !== selectionChannelKey }"
+      >
+        <text class="curve-label" :x="curve.points[0].x - 18" :y="labelY(curve)">
+          {{ curve.channel.label }}
+        </text>
         <polyline class="halo" :points="curve.polyline" />
-        <polyline class="line" :points="curve.polyline" :style="{ stroke: channelColor(curve.channel.key) }" />
-        <circle v-if="protectAnchor" class="pin-ring" :cx="curve.points[SHADE_NAMES.indexOf(resolvedAnchor)].x" :cy="curve.points[SHADE_NAMES.indexOf(resolvedAnchor)].y" r="11" />
+        <polyline
+          class="line"
+          :points="curve.polyline"
+          :style="{ stroke: channelColor(curve.channel.key) }"
+        />
+        <circle
+          v-if="protectAnchor"
+          class="pin-ring"
+          :cx="curve.points[SHADE_NAMES.indexOf(resolvedAnchor)].x"
+          :cy="curve.points[SHADE_NAMES.indexOf(resolvedAnchor)].y"
+          r="11"
+        />
         <circle
           v-for="point in curve.points"
           :key="point.shade"
@@ -480,7 +519,11 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
         />
       </g>
 
-      <g v-if="selectionView && selectedShadeRange.length > 1" class="curve-cage" :style="{ color: channelColor(selectionView.channel.key) }">
+      <g
+        v-if="selectionView && selectedShadeRange.length > 1"
+        class="curve-cage"
+        :style="{ color: channelColor(selectionView.channel.key) }"
+      >
         <polyline class="cage-visible" :points="selectionView.segment" />
         <polyline
           class="cage-hit"
@@ -494,13 +537,31 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
           @pointerup="onPointerUp"
           @pointercancel="onPointerUp"
         />
-        <line :x1="selectionView.start.x" :y1="selectionView.start.y" :x2="selectionView.midX" :y2="selectionView.midY" />
-        <line :x1="selectionView.midX" :y1="selectionView.midY" :x2="selectionView.end.x" :y2="selectionView.end.y" />
-        <g v-for="control in [
-          { key: 'start' as const, x: selectionView.start.x, y: selectionView.start.y, label: 'START' },
-          { key: 'curve' as const, x: selectionView.midX, y: selectionView.midY, label: 'CURVE' },
-          { key: 'end' as const, x: selectionView.end.x, y: selectionView.end.y, label: 'END' },
-        ]" :key="control.key">
+        <line
+          :x1="selectionView.start.x"
+          :y1="selectionView.start.y"
+          :x2="selectionView.midX"
+          :y2="selectionView.midY"
+        />
+        <line
+          :x1="selectionView.midX"
+          :y1="selectionView.midY"
+          :x2="selectionView.end.x"
+          :y2="selectionView.end.y"
+        />
+        <g
+          v-for="control in [
+            {
+              key: 'start' as const,
+              x: selectionView.start.x,
+              y: selectionView.start.y,
+              label: 'START',
+            },
+            { key: 'curve' as const, x: selectionView.midX, y: selectionView.midY, label: 'CURVE' },
+            { key: 'end' as const, x: selectionView.end.x, y: selectionView.end.y, label: 'END' },
+          ]"
+          :key="control.key"
+        >
           <rect
             class="cage-control"
             :x="control.x - 6"
@@ -516,7 +577,14 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
             @pointerup="onPointerUp"
             @pointercancel="onPointerUp"
           />
-          <text class="cage-label" :x="control.x" :y="Math.min(size.height - 30, control.y + 24)" text-anchor="middle">{{ control.label }}</text>
+          <text
+            class="cage-label"
+            :x="control.x"
+            :y="Math.min(size.height - 30, control.y + 24)"
+            text-anchor="middle"
+          >
+            {{ control.label }}
+          </text>
         </g>
       </g>
     </svg>
@@ -524,39 +592,219 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
 </template>
 
 <style scoped>
-.editor { position: relative; height: clamp(360px, 55vh, 560px); overflow: hidden; border: 1px solid #2e3038; border-radius: 10px; background: #15161a; }
-.strips { display: flex; height: 100%; touch-action: none; }
-.strip { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 2px; padding: 10px 0; border: 0; border-radius: 0; cursor: crosshair; font: inherit; }
-.strip + .strip { border-left: 1px solid rgb(255 255 255 / 8%); }
-.strip.selected { box-shadow: inset 0 -4px #fff, inset 0 3px #fff; }
-.strip.active { outline: 2px solid currentColor; outline-offset: -3px; }
-.strip.feathered { box-shadow: inset 0 -3px rgb(255 255 255 / 65%); }
-.strip-shade { font-weight: 700; font-size: 12px; }
-.strip-hex { font-size: 10px; opacity: .72; font-family: ui-monospace, monospace; }
-.selection-badge { position: absolute; z-index: 2; top: 10px; left: 50%; display: flex; align-items: center; gap: 8px; padding: 5px 7px 5px 9px; transform: translateX(-50%); border: 1px solid rgb(255 255 255 / 42%); border-radius: 5px; background: rgb(15 16 20 / 88%); color: #f2f3f5; font: 10px ui-monospace, monospace; }
-.selection-badge span { color: #9699a3; }
-.selection-badge button { min-height: 20px; padding: 0 4px; border: 0; background: transparent; }
-.overlay { position: absolute; inset: 0; pointer-events: none; }
-.selection-region rect { fill: rgb(255 255 255 / 5%); }
-.selection-region path { fill: none; stroke: #fff; stroke-width: 1.5; }
-.baseline polyline { fill: none; stroke: #d8d9df; stroke-width: 1.2; stroke-dasharray: 14 7; opacity: .5; }
-.baseline circle { fill: #15161a; stroke: #d8d9df; stroke-width: 1.2; opacity: .65; }
-.reference polyline { fill: none; stroke: currentColor; stroke-width: 1.55; }
-.reference circle, .reference rect, .reference polygon { fill: #15161a; stroke: currentColor; stroke-width: 1.5; }
-.preview-base polyline { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-dasharray: 3 4; opacity: .5; }
-.pin-ring { fill: none; stroke: rgb(255 255 255 / 70%); stroke-width: 1.3; stroke-dasharray: 2.5 3; }
-.halo { fill: none; stroke: rgb(8 9 12 / 75%); stroke-width: 5; }
-.line { fill: none; stroke-width: 2; }
-.muted { opacity: .3; }
-.curve-label { font-size: 11px; font-weight: 750; fill: #f4f4f6; paint-order: stroke; stroke: rgb(8 9 12 / 85%); stroke-width: 3px; }
-.handle { fill: #f4f4f6; stroke: #111217; stroke-width: 2; cursor: grab; pointer-events: auto; }
-.handle.active { stroke: #fff; stroke-width: 3; }
-.handle.selected { fill: currentColor; stroke: #fff; stroke-width: 2; }
-.handle.feathered { fill: #15161a; stroke: #fff; stroke-width: 2; }
-.handle:focus-visible, .cage-control:focus-visible, .cage-hit:focus-visible { outline: none; stroke: #87a4ff; stroke-width: 4; }
-.curve-cage line { stroke: rgb(255 255 255 / 52%); stroke-width: 1; stroke-dasharray: 3 4; }
-.cage-visible { fill: none; stroke: currentColor; stroke-width: 4; }
-.cage-hit { fill: none; stroke: transparent; stroke-width: 18; cursor: ns-resize; pointer-events: stroke; }
-.cage-control { fill: #15161a; stroke: #fff; stroke-width: 2; cursor: ns-resize; pointer-events: auto; }
-.cage-label { fill: #fff; font: 9px ui-monospace, monospace; paint-order: stroke; stroke: #15161a; stroke-width: 3px; letter-spacing: .08em; }
+.editor {
+  position: relative;
+  height: clamp(480px, 62dvh, 760px);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+  background: var(--background);
+}
+@media (min-width: 1792px) {
+  .editor {
+    height: clamp(560px, 68dvh, 920px);
+  }
+}
+.strips {
+  display: flex;
+  height: 100%;
+  touch-action: none;
+}
+.strip {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 0;
+  border: 0;
+  border-radius: 0;
+  cursor: crosshair;
+  font: inherit;
+}
+.strip + .strip {
+  border-left: 1px solid rgb(255 255 255 / 8%);
+}
+.strip.selected {
+  box-shadow:
+    inset 0 -4px #fff,
+    inset 0 3px #fff;
+}
+.strip.active {
+  outline: 2px solid currentColor;
+  outline-offset: -3px;
+}
+.strip.feathered {
+  box-shadow: inset 0 -3px rgb(255 255 255 / 65%);
+}
+.strip-shade {
+  font-weight: 700;
+  font-size: 12px;
+}
+.strip-hex {
+  font-size: 10px;
+  opacity: 0.72;
+  font-family: ui-monospace, monospace;
+}
+.selection-badge {
+  position: absolute;
+  z-index: 2;
+  top: 10px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 7px 5px 9px;
+  transform: translateX(-50%);
+  border: 1px solid rgb(255 255 255 / 42%);
+  border-radius: 5px;
+  background: rgb(15 16 20 / 88%);
+  color: #f2f3f5;
+  font:
+    10px ui-monospace,
+    monospace;
+}
+.selection-badge span {
+  color: #9699a3;
+}
+.selection-badge button {
+  min-height: 20px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+}
+.overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.selection-region rect {
+  fill: rgb(255 255 255 / 5%);
+}
+.selection-region path {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+.baseline polyline {
+  fill: none;
+  stroke: #d8d9df;
+  stroke-width: 1.2;
+  stroke-dasharray: 14 7;
+  opacity: 0.5;
+}
+.baseline circle {
+  fill: #15161a;
+  stroke: #d8d9df;
+  stroke-width: 1.2;
+  opacity: 0.65;
+}
+.reference polyline {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.55;
+}
+.reference circle,
+.reference rect,
+.reference polygon {
+  fill: #15161a;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+.preview-base polyline {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-dasharray: 3 4;
+  opacity: 0.5;
+}
+.pin-ring {
+  fill: none;
+  stroke: rgb(255 255 255 / 70%);
+  stroke-width: 1.3;
+  stroke-dasharray: 2.5 3;
+}
+.halo {
+  fill: none;
+  stroke: rgb(8 9 12 / 75%);
+  stroke-width: 5;
+}
+.line {
+  fill: none;
+  stroke-width: 2;
+}
+.muted {
+  opacity: 0.3;
+}
+.curve-label {
+  font-size: 11px;
+  font-weight: 750;
+  fill: #f4f4f6;
+  paint-order: stroke;
+  stroke: rgb(8 9 12 / 85%);
+  stroke-width: 3px;
+}
+.handle {
+  fill: #f4f4f6;
+  stroke: #111217;
+  stroke-width: 2;
+  cursor: grab;
+  pointer-events: auto;
+}
+.handle.active {
+  stroke: #fff;
+  stroke-width: 3;
+}
+.handle.selected {
+  fill: currentColor;
+  stroke: #fff;
+  stroke-width: 2;
+}
+.handle.feathered {
+  fill: #15161a;
+  stroke: #fff;
+  stroke-width: 2;
+}
+.handle:focus-visible,
+.cage-control:focus-visible,
+.cage-hit:focus-visible {
+  outline: none;
+  stroke: #87a4ff;
+  stroke-width: 4;
+}
+.curve-cage line {
+  stroke: rgb(255 255 255 / 52%);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+}
+.cage-visible {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 4;
+}
+.cage-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 18;
+  cursor: ns-resize;
+  pointer-events: stroke;
+}
+.cage-control {
+  fill: #15161a;
+  stroke: #fff;
+  stroke-width: 2;
+  cursor: ns-resize;
+  pointer-events: auto;
+}
+.cage-label {
+  fill: #fff;
+  font:
+    9px ui-monospace,
+    monospace;
+  paint-order: stroke;
+  stroke: #15161a;
+  stroke-width: 3px;
+  letter-spacing: 0.08em;
+}
 </style>

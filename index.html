@@ -1,12 +1,32 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tailwind OKLCH Palette</title>
+    <script>
+      try {
+        const storedTheme = localStorage.getItem('theme')
+        const theme = storedTheme === 'light' ? 'light' : 'dark'
+        document.documentElement.classList.toggle('dark', theme === 'dark')
+        document.documentElement.style.colorScheme = theme
+      } catch {
+        document.documentElement.classList.add('dark')
+        document.documentElement.style.colorScheme = 'dark'
+      }
+    </script>
   </head>
   <body>
+    <!--
+      IMPECCABLE_CONTRACT_SHADCN_INSTRUMENT
+      THESIS: A precise color instrument, not a decorated dashboard; the palette canvas stays dominant.
+      OWN-WORLD: shadcn neutral dark surfaces, compact controls, quiet borders, and one consistent radius scale.
+      STORY: Set a source, shape the curve, inspect a tonal range, then copy production-ready tokens.
+      FIRST VIEWPORT: Compact header and source controls above a wide canvas with a 360px inspector rail.
+      FORM: Canonical shadcn workbench, pinned by the user's three references; seed shadcn-instrument-canon.
+      FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+    -->
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

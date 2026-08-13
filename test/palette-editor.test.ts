@@ -65,7 +65,18 @@ describe('palette editor rendering', () => {
     await wrapper.vm.$nextTick()
 
     expect(wrapper.findAll('.strip')).toHaveLength(11)
+    const referencesTab = wrapper.findAll('[role="tab"]').find((tab) => tab.text() === 'References')
+    await referencesTab!.trigger('mousedown', { button: 0 })
+    await wrapper.vm.$nextTick()
     expect(wrapper.findAll('.reference-row')).toHaveLength(3)
+    expect(
+      wrapper
+        .findAll<HTMLSelectElement>('.reference-controls select')
+        .every((select) => Boolean(select.element.value)),
+    ).toBe(true)
+    expect(
+      wrapper.get<HTMLSelectElement>('select[aria-label="Reference palette to add"]').element.value,
+    ).not.toBe('')
     expect(wrapper.findAll('.handle')).toHaveLength(33)
     expect(wrapper.text()).toContain('brand-500')
     wrapper.unmount()

@@ -57,7 +57,9 @@ export interface SelectionCurve {
   endDelta: number
 }
 
-const OVERLAY_COLORS = ['#f4c45e', '#67d5ff', '#f18ac2', '#a7df78']
+// Line and marker styles identify references, so comparison data can use one
+// quiet ink instead of introducing unexplained brand colors into the canvas.
+const OVERLAY_COLORS = ['#64748b', '#64748b', '#64748b', '#64748b']
 const OVERLAY_LINES: OverlayLine[] = ['dash', 'dash-dot', 'dot', 'long-dash']
 const OVERLAY_MARKERS: OverlayMarker[] = ['diamond', 'square', 'triangle', 'circle']
 

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { XIcon } from '@lucide/vue'
 import { computed, ref, watch } from 'vue'
 import { CHANNEL_MODES } from '@/app/channels'
 import {
@@ -10,10 +11,14 @@ import {
 import {
   addOverlay,
   applySelectionPreview,
+  beginContinuousEdit,
   cancelSelectionPreview,
   canRedo,
   canUndo,
   channelMode,
+  displayShades,
+  effectiveShades,
+  endContinuousEdit,
   history,
   historyIndex,
   overlayConfigs,
@@ -29,6 +34,7 @@ import {
   resolvedAnchor,
   restoreHistory,
   selectedShadeRange,
+  selectedShade,
   selectionChannel,
   selectionChannelKey,
   selectionCurve,
@@ -37,6 +43,7 @@ import {
   setSelectionChannel,
   setSelectionFeather,
   setShadeSelection,
+  setShadeColor,
   shadeSelection,
   shades,
   soloOverlay,
@@ -52,6 +59,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Slider } from '@/components/ui/slider'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { formatOklch } from '@/index'
 
 type InspectorTab = 'references' | 'selection' | 'history'
 type SelectionTool = 'shape' | 'fit' | 'smooth'
@@ -79,6 +88,9 @@ const smoothStrengthModel = computed({
 })
 
 const channels = computed(() => CHANNEL_MODES[channelMode.value])
+const selectedEntry = computed(() =>
+  displayShades.value.find((entry) => entry.shade === selectedShade.value),
+)
 const selectedSource = computed(() =>
   referenceFamilies.find((family) => family.name === sourceName.value),
 )
@@ -109,7 +121,14 @@ watch(
   referenceRanks,
   (ranks) => {
     if (!sourceName.value && ranks[0]) sourceName.value = ranks[0].family.name
-    if (!addReferenceName.value && ranks[0]) addReferenceName.value = ranks[0].family.name
+  },
+  { immediate: true },
+)
+watch(
+  availableReferences,
+  (ranks) => {
+    const isAvailable = ranks.some((rank) => rank.family.name === addReferenceName.value)
+    if (!isAvailable) addReferenceName.value = ranks[0]?.family.name ?? ''
   },
   { immediate: true },
 )
@@ -197,330 +216,425 @@ function fitFrom(name: string): void {
   selectionTool.value = 'fit'
   previewFit()
 }
+
+function channelInput(event: Event, channelLabel: string, set: (value: number) => void): void {
+  const value = Number((event.target as HTMLInputElement).value)
+  if (!Number.isFinite(value)) return
+  beginContinuousEdit()
+  set(value)
+  endContinuousEdit(`Set ${channelLabel} at ${selectedShade.value}`)
+}
+
+function contrastBadge(ratio: number): string {
+  if (ratio >= 7) return 'AAA'
+  if (ratio >= 4.5) return 'AA'
+  if (ratio >= 3) return 'UI'
+  return 'Fail'
+}
 </script>
 
 <template>
   <Card class="inspector" aria-label="Palette inspector">
-    <nav class="tabs" aria-label="Inspector sections">
-      <Button
-        v-for="item in tabs"
-        :key="item.id"
-        type="button"
-        :class="{ active: tab === item.id }"
-        @click="tab = item.id"
+    <Tabs v-model="tab" class="min-h-0 flex-1 gap-0">
+      <TabsList
+        variant="line"
+        class="grid h-12 w-full grid-cols-3 rounded-none border-b bg-transparent px-3"
       >
-        {{ item.label }}
-      </Button>
-    </nav>
+        <TabsTrigger v-for="item in tabs" :key="item.id" :value="item.id">{{
+          item.label
+        }}</TabsTrigger>
+      </TabsList>
 
-    <section v-if="tab === 'references'" class="inspector-body">
-      <header>
-        <h2>Nearest Tailwind palettes</h2>
-        <p>Compare complete curves, or fit the current selection toward one reference.</p>
-      </header>
-      <div class="reference-list">
-        <article
-          v-for="overlay in overlayConfigs"
-          :key="overlay.name"
-          class="reference-row"
-          :class="{ off: !overlay.enabled }"
-        >
-          <div class="reference-title">
-            <label class="check">
-              <Checkbox
-                :model-value="overlay.enabled"
-                @update:model-value="updateOverlay(overlay.name, { enabled: !overlay.enabled })"
-              />
-              <svg class="sample" width="46" height="14" aria-hidden="true">
-                <line
-                  x1="2"
-                  y1="7"
-                  x2="44"
-                  y2="7"
-                  :stroke="overlay.color"
-                  stroke-width="1.5"
-                  :stroke-dasharray="OVERLAY_DASH[overlay.line]"
-                />
-                <circle
-                  v-if="overlay.marker === 'circle'"
-                  cx="23"
-                  cy="7"
-                  r="3.5"
-                  :stroke="overlay.color"
-                />
-                <rect
-                  v-else-if="overlay.marker === 'square'"
-                  x="19.7"
-                  y="3.7"
-                  width="6.6"
-                  height="6.6"
-                  :stroke="overlay.color"
-                />
-                <rect
-                  v-else-if="overlay.marker === 'diamond'"
-                  x="19.8"
-                  y="3.8"
-                  width="6.4"
-                  height="6.4"
-                  transform="rotate(45 23 7)"
-                  :stroke="overlay.color"
-                />
-                <polygon v-else :points="trianglePoints(23, 7, 4.4)" :stroke="overlay.color" />
-              </svg>
-              <strong>{{ overlay.name }}</strong>
-            </label>
-            <Badge variant="secondary" class="font-mono">{{ overlay.score.toFixed(0) }}%</Badge>
-          </div>
-          <div class="reference-controls">
-            <input
-              type="color"
-              :value="overlay.color"
-              :aria-label="`${overlay.name} line color`"
-              @input="
-                updateOverlay(overlay.name, { color: ($event.target as HTMLInputElement).value })
-              "
-            />
-            <NativeSelect
-              :value="overlay.line"
-              :aria-label="`${overlay.name} line style`"
-              @change="
-                updateOverlay(overlay.name, {
-                  line: ($event.target as HTMLSelectElement).value as typeof overlay.line,
-                })
-              "
-            >
-              <NativeSelectOption
-                v-for="option in OVERLAY_LINE_OPTIONS"
-                :key="option.value"
-                :value="option.value"
-                >{{ option.label }}</NativeSelectOption
-              >
-            </NativeSelect>
-            <NativeSelect
-              :value="overlay.marker"
-              :aria-label="`${overlay.name} marker shape`"
-              @change="
-                updateOverlay(overlay.name, {
-                  marker: ($event.target as HTMLSelectElement).value as typeof overlay.marker,
-                })
-              "
-            >
-              <NativeSelectOption
-                v-for="marker in OVERLAY_MARKER_OPTIONS"
-                :key="marker"
-                :value="marker"
-                >{{ marker }}</NativeSelectOption
-              >
-            </NativeSelect>
-            <Button type="button" @click="soloOverlay(overlay.name)">Solo</Button>
-            <Button type="button" @click="fitFrom(overlay.name)">Fit selection</Button>
-            <Button
-              type="button"
-              :aria-label="`Remove ${overlay.name} reference`"
-              @click="removeOverlay(overlay.name)"
-              >×</Button
-            >
-          </div>
-        </article>
-      </div>
-      <div class="inline-control">
-        <NativeSelect v-model="addReferenceName" aria-label="Reference palette to add">
-          <NativeSelectOption
-            v-for="rank in availableReferences"
-            :key="rank.family.name"
-            :value="rank.family.name"
-            >{{ rank.family.name }} · {{ rank.score.toFixed(0) }}%</NativeSelectOption
-          >
-        </NativeSelect>
-        <Button type="button" :disabled="!addReferenceName" @click="addSelectedReference"
-          >Add</Button
-        >
-      </div>
-    </section>
-
-    <section v-else-if="tab === 'selection'" class="inspector-body selection-panel">
-      <template v-if="shadeSelection">
-        <header class="selection-head">
-          <div>
-            <h2>{{ shadeSelection.from }}–{{ shadeSelection.to }}</h2>
-            <p>
-              {{ selectedShadeRange.length }} selected shade{{
-                selectedShadeRange.length === 1 ? '' : 's'
-              }}
-              · {{ selectionChannel?.label }} channel
-            </p>
-          </div>
-          <Button type="button" @click="setShadeSelection(50, 950)">Select all</Button>
+      <TabsContent value="references" class="inspector-body">
+        <header>
+          <h2>Nearest Tailwind palettes</h2>
+          <p>Compare complete curves, or fit the current selection toward one reference.</p>
         </header>
-
-        <div class="tool-switch" role="group" aria-label="Selection operation">
+        <div class="reference-list">
+          <article
+            v-for="overlay in overlayConfigs"
+            :key="overlay.name"
+            class="reference-row"
+            :class="{ off: !overlay.enabled }"
+          >
+            <div class="reference-title">
+              <label class="check">
+                <Checkbox
+                  :model-value="overlay.enabled"
+                  @update:model-value="updateOverlay(overlay.name, { enabled: !overlay.enabled })"
+                />
+                <svg class="sample" width="46" height="14" aria-hidden="true">
+                  <line
+                    x1="2"
+                    y1="7"
+                    x2="44"
+                    y2="7"
+                    :stroke="overlay.color"
+                    stroke-width="1.5"
+                    :stroke-dasharray="OVERLAY_DASH[overlay.line]"
+                  />
+                  <circle
+                    v-if="overlay.marker === 'circle'"
+                    cx="23"
+                    cy="7"
+                    r="3.5"
+                    :stroke="overlay.color"
+                  />
+                  <rect
+                    v-else-if="overlay.marker === 'square'"
+                    x="19.7"
+                    y="3.7"
+                    width="6.6"
+                    height="6.6"
+                    :stroke="overlay.color"
+                  />
+                  <rect
+                    v-else-if="overlay.marker === 'diamond'"
+                    x="19.8"
+                    y="3.8"
+                    width="6.4"
+                    height="6.4"
+                    transform="rotate(45 23 7)"
+                    :stroke="overlay.color"
+                  />
+                  <polygon v-else :points="trianglePoints(23, 7, 4.4)" :stroke="overlay.color" />
+                </svg>
+                <strong>{{ overlay.name }}</strong>
+              </label>
+              <Badge variant="secondary" class="font-mono">{{ overlay.score.toFixed(0) }}%</Badge>
+            </div>
+            <div class="reference-controls">
+              <input
+                type="color"
+                :value="overlay.color"
+                :aria-label="`${overlay.name} line color`"
+                @input="
+                  updateOverlay(overlay.name, { color: ($event.target as HTMLInputElement).value })
+                "
+              />
+              <NativeSelect
+                :model-value="overlay.line"
+                :aria-label="`${overlay.name} line style`"
+                @update:model-value="
+                  updateOverlay(overlay.name, {
+                    line: $event as typeof overlay.line,
+                  })
+                "
+              >
+                <NativeSelectOption
+                  v-for="option in OVERLAY_LINE_OPTIONS"
+                  :key="option.value"
+                  :value="option.value"
+                  >{{ option.label }}</NativeSelectOption
+                >
+              </NativeSelect>
+              <NativeSelect
+                :model-value="overlay.marker"
+                :aria-label="`${overlay.name} marker shape`"
+                @update:model-value="
+                  updateOverlay(overlay.name, {
+                    marker: $event as typeof overlay.marker,
+                  })
+                "
+              >
+                <NativeSelectOption
+                  v-for="marker in OVERLAY_MARKER_OPTIONS"
+                  :key="marker"
+                  :value="marker"
+                  >{{ marker }}</NativeSelectOption
+                >
+              </NativeSelect>
+              <Button type="button" variant="ghost" size="xs" @click="soloOverlay(overlay.name)"
+                >Solo</Button
+              >
+              <Button type="button" variant="outline" size="xs" @click="fitFrom(overlay.name)"
+                >Fit selection</Button
+              >
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
+                :aria-label="`Remove ${overlay.name} reference`"
+                @click="removeOverlay(overlay.name)"
+                ><XIcon
+              /></Button>
+            </div>
+          </article>
+        </div>
+        <div class="inline-control">
+          <NativeSelect v-model="addReferenceName" aria-label="Reference palette to add">
+            <NativeSelectOption v-if="!availableReferences.length" value="" disabled
+              >No palettes available</NativeSelectOption
+            >
+            <NativeSelectOption
+              v-for="rank in availableReferences"
+              :key="rank.family.name"
+              :value="rank.family.name"
+              >{{ rank.family.name }} · {{ rank.score.toFixed(0) }}%</NativeSelectOption
+            >
+          </NativeSelect>
           <Button
-            v-for="tool in ['shape', 'fit', 'smooth'] as const"
-            :key="tool"
             type="button"
-            :class="{ active: selectionTool === tool }"
-            @click="selectionTool = tool"
-            >{{ tool }}</Button
+            size="sm"
+            :disabled="!addReferenceName"
+            @click="addSelectedReference"
+            >Add</Button
           >
         </div>
+      </TabsContent>
 
-        <div class="split">
-          <label
-            >Channel
-            <NativeSelect v-model="channelModel">
-              <NativeSelectOption
-                v-for="channel in channels"
-                :key="channel.key"
-                :value="channel.key"
-                >{{ channel.label }}</NativeSelectOption
-              >
-            </NativeSelect>
-          </label>
-          <label
-            >Edge feather
-            <NativeSelect v-model.number="featherModel">
-              <NativeSelectOption v-for="value in [0, 1, 2, 3]" :key="value" :value="value"
-                >{{ value }} shade{{ value === 1 ? '' : 's' }}</NativeSelectOption
-              >
-            </NativeSelect>
-          </label>
-        </div>
-
-        <template v-if="selectionTool === 'shape'">
-          <p class="hint">
-            Drag the curve body to offset the range. Start, Curve, and End handles control its
-            shape.
-          </p>
+      <TabsContent value="selection" class="inspector-body selection-panel">
+        <section v-if="selectedEntry && effectiveShades" class="shade-summary">
+          <div class="shade-summary-head">
+            <span
+              class="shade-swatch"
+              :style="{ background: selectedEntry.css }"
+              aria-hidden="true"
+            />
+            <div class="min-w-0">
+              <p class="shade-eyebrow">Selected shade</p>
+              <h2>{{ selectedEntry.shade }}</h2>
+            </div>
+            <Badge variant="outline" class="ms-auto font-mono">{{ selectedEntry.hex }}</Badge>
+          </div>
+          <p class="shade-value">{{ formatOklch(selectedEntry.raw) }}</p>
           <div class="numeric-grid">
-            <label
-              >Offset Δ
-              <Input v-model.number="bodyOffset" type="number" :step="selectionChannel?.step" />
-            </label>
-            <label
-              >Start Δ
+            <label v-for="channel in CHANNEL_MODES[channelMode]" :key="channel.key">
+              {{ channel.label }}
               <Input
+                :id="`inspector-channel-${channel.key}`"
+                class="font-mono"
                 type="number"
-                :step="selectionChannel?.step"
-                :model-value="selectionCurve.startDelta"
-                @change="setCurveValue('startDelta', $event)"
-              />
-            </label>
-            <label
-              >Curve Δ
-              <Input
-                type="number"
-                :step="selectionChannel?.step"
-                :model-value="selectionCurve.curveDelta"
-                @change="setCurveValue('curveDelta', $event)"
-              />
-            </label>
-            <label
-              >End Δ
-              <Input
-                type="number"
-                :step="selectionChannel?.step"
-                :model-value="selectionCurve.endDelta"
-                @change="setCurveValue('endDelta', $event)"
+                :min="channel.min"
+                :max="channel.max"
+                :step="channel.step"
+                :model-value="Number(channel.get(selectedEntry.raw).toFixed(4))"
+                @change="
+                  channelInput($event, channel.label, (value) =>
+                    setShadeColor(
+                      selectedEntry!.shade,
+                      channel.set(effectiveShades![selectedEntry!.shade], value),
+                    ),
+                  )
+                "
               />
             </label>
           </div>
-          <Button type="button" @click="resetSelectionCurve()">Reset curve</Button>
-        </template>
+          <div class="shade-results">
+            <Badge variant="secondary" class="font-mono"
+              >White {{ selectedEntry.contrastOnWhite.toFixed(2) }} ·
+              {{ contrastBadge(selectedEntry.contrastOnWhite) }}</Badge
+            >
+            <Badge variant="secondary" class="font-mono"
+              >Black {{ selectedEntry.contrastOnBlack.toFixed(2) }} ·
+              {{ contrastBadge(selectedEntry.contrastOnBlack) }}</Badge
+            >
+            <Badge
+              v-if="!selectedEntry.inGamut"
+              variant="outline"
+              class="border-amber-500/40 text-amber-700 dark:text-amber-300"
+              >Gamut mapped</Badge
+            >
+          </div>
+        </section>
 
-        <template v-else-if="selectionTool === 'fit'">
-          <label
-            >Reference
-            <NativeSelect v-model="sourceName">
-              <NativeSelectOption
-                v-for="rank in referenceRanks"
-                :key="rank.family.name"
-                :value="rank.family.name"
-                >{{ rank.family.name }} · ΔE {{ rank.meanDelta.toFixed(3) }}</NativeSelectOption
-              >
-            </NativeSelect>
-          </label>
+        <template v-if="shadeSelection">
+          <header class="selection-head">
+            <div>
+              <h2>{{ shadeSelection.from }}–{{ shadeSelection.to }}</h2>
+              <p>
+                {{ selectedShadeRange.length }} selected shade{{
+                  selectedShadeRange.length === 1 ? '' : 's'
+                }}
+                · {{ selectionChannel?.label }} channel
+              </p>
+            </div>
+            <Button type="button" variant="outline" size="sm" @click="setShadeSelection(50, 950)"
+              >Select all</Button
+            >
+          </header>
+
+          <div class="tool-switch" role="group" aria-label="Selection operation">
+            <Button
+              v-for="tool in ['shape', 'fit', 'smooth'] as const"
+              :key="tool"
+              type="button"
+              size="sm"
+              :variant="selectionTool === tool ? 'secondary' : 'ghost'"
+              @click="selectionTool = tool"
+              >{{ tool }}</Button
+            >
+          </div>
+
           <div class="split">
             <label
-              >Method
-              <NativeSelect v-model="operation"
-                ><NativeSelectOption value="shape">shape</NativeSelectOption
-                ><NativeSelectOption value="values">values</NativeSelectOption></NativeSelect
-              >
+              >Channel
+              <NativeSelect v-model="channelModel">
+                <NativeSelectOption
+                  v-for="channel in channels"
+                  :key="channel.key"
+                  :value="channel.key"
+                  >{{ channel.label }}</NativeSelectOption
+                >
+              </NativeSelect>
             </label>
             <label
-              >Amount <output>{{ Math.round(amount * 100) }}%</output>
-              <Slider v-model="amountModel" :min="0" :max="1" :step="0.01" />
+              >Edge feather
+              <NativeSelect v-model.number="featherModel">
+                <NativeSelectOption v-for="value in [0, 1, 2, 3]" :key="value" :value="value"
+                  >{{ value }} shade{{ value === 1 ? '' : 's' }}</NativeSelectOption
+                >
+              </NativeSelect>
             </label>
           </div>
-          <p class="hint">
-            Only {{ shadeSelection.from }}–{{ shadeSelection.to }} and its feathered edges move
-            toward {{ selectedSource?.name }}.
-          </p>
-        </template>
 
-        <template v-else>
-          <label
-            >Smoothing strength <output>{{ Math.round(smoothStrength * 100) }}%</output>
-            <Slider v-model="smoothStrengthModel" :min="0" :max="1" :step="0.01" />
-          </label>
+          <template v-if="selectionTool === 'shape'">
+            <p class="hint">
+              Drag the curve body to offset the range. Start, Curve, and End handles control its
+              shape.
+            </p>
+            <div class="numeric-grid">
+              <label
+                >Offset Δ
+                <Input v-model.number="bodyOffset" type="number" :step="selectionChannel?.step" />
+              </label>
+              <label
+                >Start Δ
+                <Input
+                  type="number"
+                  :step="selectionChannel?.step"
+                  :model-value="selectionCurve.startDelta"
+                  @change="setCurveValue('startDelta', $event)"
+                />
+              </label>
+              <label
+                >Curve Δ
+                <Input
+                  type="number"
+                  :step="selectionChannel?.step"
+                  :model-value="selectionCurve.curveDelta"
+                  @change="setCurveValue('curveDelta', $event)"
+                />
+              </label>
+              <label
+                >End Δ
+                <Input
+                  type="number"
+                  :step="selectionChannel?.step"
+                  :model-value="selectionCurve.endDelta"
+                  @change="setCurveValue('endDelta', $event)"
+                />
+              </label>
+            </div>
+            <Button type="button" variant="outline" size="sm" @click="resetSelectionCurve()"
+              >Reset curve</Button
+            >
+          </template>
+
+          <template v-else-if="selectionTool === 'fit'">
+            <label
+              >Reference
+              <NativeSelect v-model="sourceName">
+                <NativeSelectOption value="" disabled>Select a reference…</NativeSelectOption>
+                <NativeSelectOption
+                  v-for="rank in referenceRanks"
+                  :key="rank.family.name"
+                  :value="rank.family.name"
+                  >{{ rank.family.name }} · ΔE {{ rank.meanDelta.toFixed(3) }}</NativeSelectOption
+                >
+              </NativeSelect>
+            </label>
+            <div class="split">
+              <label
+                >Method
+                <NativeSelect v-model="operation"
+                  ><NativeSelectOption value="shape">shape</NativeSelectOption
+                  ><NativeSelectOption value="values">values</NativeSelectOption></NativeSelect
+                >
+              </label>
+              <label
+                >Amount <output>{{ Math.round(amount * 100) }}%</output>
+                <Slider v-model="amountModel" :min="0" :max="1" :step="0.01" />
+              </label>
+            </div>
+            <p class="hint">
+              Only {{ shadeSelection.from }}–{{ shadeSelection.to }} and its feathered edges move
+              toward {{ selectedSource?.name }}.
+            </p>
+          </template>
+
+          <template v-else>
+            <label
+              >Smoothing strength <output>{{ Math.round(smoothStrength * 100) }}%</output>
+              <Slider v-model="smoothStrengthModel" :min="0" :max="1" :step="0.01" />
+            </label>
+            <label class="check"
+              ><Checkbox v-model="protectEndpoints" /> Preserve selection endpoints</label
+            >
+            <p class="hint">
+              Regularizes local kinks inside this range while keeping the rest of the palette
+              unchanged.
+            </p>
+          </template>
+
           <label class="check"
-            ><Checkbox v-model="protectEndpoints" /> Preserve selection endpoints</label
+            ><Checkbox v-model="protectAnchor" /> Preserve anchor {{ resolvedAnchor }}</label
           >
-          <p class="hint">
-            Regularizes local kinks inside this range while keeping the rest of the palette
-            unchanged.
-          </p>
         </template>
 
-        <label class="check"
-          ><Checkbox v-model="protectAnchor" /> Preserve anchor {{ resolvedAnchor }}</label
-        >
-      </template>
-
-      <div v-else class="empty-selection">
-        <div class="empty-diagram" aria-hidden="true">[ ●—●—● ]</div>
-        <h2>Select shades first</h2>
-        <p>
-          Click a shade, Shift-click a range, or drag across the shade strip. The curve controls
-          will appear here.
-        </p>
-        <div class="actions">
-          <Button type="button" class="primary" @click="setShadeSelection(700, 950)"
-            >Select dark tail</Button
-          >
-          <Button type="button" @click="setShadeSelection(50, 950)">Select all</Button>
+        <div v-else class="empty-selection">
+          <div class="empty-diagram" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </div>
+          <h2>Choose a tonal range</h2>
+          <p>
+            Click a shade, Shift-click a range, or drag across the strip to shape several shades
+            together.
+          </p>
+          <div class="grid w-full max-w-64 gap-2">
+            <Button type="button" @click="setShadeSelection(700, 950)">Select dark tail</Button>
+            <Button type="button" variant="outline" @click="setShadeSelection(50, 950)"
+              >Select full scale</Button
+            >
+          </div>
         </div>
-      </div>
-    </section>
+      </TabsContent>
 
-    <section v-else class="inspector-body">
-      <header>
-        <h2>Edit history</h2>
-        <p>Every applied selection operation and direct point edit is reversible.</p>
-      </header>
-      <div class="actions">
-        <Button type="button" :disabled="!canUndo" @click="undo">Undo</Button
-        ><Button type="button" :disabled="!canRedo" @click="redo">Redo</Button>
-      </div>
-      <ol class="history-list">
-        <li v-for="(entry, index) in history" :key="`${index}-${entry.label}`">
-          <Button
-            type="button"
-            :class="{ current: index === historyIndex }"
-            :aria-current="index === historyIndex ? 'step' : undefined"
-            @click="restoreHistory(index)"
-            ><span>{{ String(index + 1).padStart(2, '0') }}</span
-            >{{ entry.label }}</Button
+      <TabsContent value="history" class="inspector-body">
+        <header>
+          <h2>Edit history</h2>
+          <p>Every applied selection operation and direct point edit is reversible.</p>
+        </header>
+        <div class="actions">
+          <Button type="button" variant="outline" size="sm" :disabled="!canUndo" @click="undo"
+            >Undo</Button
+          ><Button type="button" variant="outline" size="sm" :disabled="!canRedo" @click="redo"
+            >Redo</Button
           >
-        </li>
-      </ol>
-    </section>
+        </div>
+        <ol class="history-list">
+          <li v-for="(entry, index) in history" :key="`${index}-${entry.label}`">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              :class="{ current: index === historyIndex }"
+              :aria-current="index === historyIndex ? 'step' : undefined"
+              @click="restoreHistory(index)"
+              ><span>{{ String(index + 1).padStart(2, '0') }}</span
+              >{{ entry.label }}</Button
+            >
+          </li>
+        </ol>
+      </TabsContent>
+    </Tabs>
 
     <footer v-if="previewShades" class="preview-bar">
       <div><span>PREVIEW</span>{{ previewLabel }}</div>
       <div class="actions">
-        <Button type="button" @click="cancelSelectionPreview">Cancel</Button
-        ><Button type="button" class="primary" @click="applySelectionPreview">Apply</Button>
+        <Button type="button" variant="outline" size="sm" @click="cancelSelectionPreview"
+          >Cancel</Button
+        ><Button type="button" size="sm" @click="applySelectionPreview">Apply</Button>
       </div>
     </footer>
   </Card>
@@ -530,38 +644,65 @@ function fitFrom(name: string): void {
 .inspector {
   display: flex;
   min-width: 0;
-  min-height: 560px;
+  min-height: calc(clamp(480px, 62dvh, 760px) + 53px);
+  max-height: calc(100dvh - 84px);
   flex-direction: column;
   gap: 0;
   padding: 0;
-}
-.tabs {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  border-bottom: 1px solid var(--border);
-}
-.tabs :deep(button) {
-  border: 0;
-  border-right: 1px solid var(--border);
-  border-radius: 0;
-  background: transparent;
-  color: var(--muted-foreground);
-  box-shadow: none;
-}
-.tabs :deep(button:last-child) {
-  border-right: 0;
-}
-.tabs :deep(button.active) {
-  background: var(--muted);
-  color: var(--foreground);
-  box-shadow: inset 0 -2px var(--primary);
 }
 .inspector-body {
   display: flex;
   flex: 1;
   flex-direction: column;
   gap: 14px;
-  padding: 16px;
+  padding: 20px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.shade-summary {
+  display: grid;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.shade-summary-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.shade-swatch {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-md);
+  outline: 1px solid rgb(0 0 0 / 10%);
+  outline-offset: -1px;
+}
+.shade-eyebrow {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.shade-summary h2 {
+  margin-top: 1px;
+  font-size: 14px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.shade-value {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font:
+    11px/1.45 ui-monospace,
+    monospace;
+}
+.shade-results {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 header h2 {
   margin: 0;
@@ -581,7 +722,7 @@ header p {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
 }
 label {
   display: flex;
@@ -637,21 +778,17 @@ input[type='color'] {
 .tool-switch :deep(button) {
   text-transform: capitalize;
 }
-.tool-switch :deep(button.active) {
-  border-color: var(--ring);
-  background: var(--muted);
-  color: var(--foreground);
-}
 .reference-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
 }
 .reference-row {
-  padding: 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: color-mix(in oklch, var(--muted) 55%, transparent);
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.reference-row:last-child {
+  border-bottom: 0;
 }
 .reference-row.off {
   opacity: 0.55;
@@ -708,16 +845,34 @@ input[type='color'] {
   line-height: 1.5;
 }
 .empty-diagram {
-  color: oklch(0.78 0.14 78);
-  font:
-    18px ui-monospace,
-    monospace;
-  letter-spacing: 0.12em;
+  position: relative;
+  display: flex;
+  width: 112px;
+  align-items: center;
+  justify-content: space-between;
+}
+.empty-diagram::before {
+  position: absolute;
+  right: 8px;
+  left: 8px;
+  height: 2px;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--primary) 45%, transparent);
+  content: '';
+}
+.empty-diagram span {
+  z-index: 1;
+  width: 16px;
+  height: 16px;
+  border: 3px solid var(--card);
+  border-radius: 999px;
+  background: var(--primary);
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--primary) 65%, transparent);
 }
 .history-list {
   display: flex;
   flex-direction: column-reverse;
-  gap: 3px;
+  gap: 0;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -725,7 +880,10 @@ input[type='color'] {
 .history-list :deep(button) {
   width: 100%;
   justify-content: flex-start;
-  border-color: transparent;
+  min-height: 40px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
   background: transparent;
   text-align: left;
 }
@@ -736,9 +894,13 @@ input[type='color'] {
   font-family: ui-monospace, monospace;
 }
 .history-list :deep(button.current) {
-  border-color: var(--border);
   background: var(--muted);
   color: var(--foreground);
+}
+@media (min-width: 1792px) {
+  .inspector {
+    min-height: calc(clamp(560px, 68dvh, 920px) + 53px);
+  }
 }
 .preview-bar {
   position: sticky;
@@ -755,7 +917,7 @@ input[type='color'] {
 }
 .preview-bar span {
   margin-right: 7px;
-  color: oklch(0.72 0.14 265);
+  color: var(--muted-foreground);
   font:
     9px ui-monospace,
     monospace;
