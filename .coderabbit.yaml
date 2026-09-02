@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: en-US
+early_access: false
+
+reviews:
+  profile: assertive
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  path_filters:
+    - '!artifacts/**'
+    - '!**/*.png'
+    - '!**/*.woff'
+    - '!**/*.woff2'
+  path_instructions:
+    - path: '.github/workflows/**'
+      instructions: |
+        Review permission boundaries, immutable action pins, untrusted input,
+        and credential isolation. This app must not publish to npm.
+    - path: '**/*.md'
+      instructions: |
+        Follow docs/WRITING.md. Keep public prose direct and do not rewrite
+        legal text, quotations, generated evidence, or historical records.
+    - path: 'test/**'
+      instructions: |
+        Prefer contract and failure tests. Confirm that each test proves the
+        behavior named by the test.
+  auto_review:
+    enabled: true
+    drafts: false
+    auto_incremental_review: true
+    auto_pause_after_reviewed_commits: 5
+    ignore_usernames:
+      - renovate[bot]
+      - github-actions[bot]
+
+chat:
+  auto_reply: true

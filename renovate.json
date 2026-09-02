@@ -1,0 +1,35 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "dependencyDashboard": true,
+  "minimumReleaseAge": "1 day",
+  "rangeStrategy": "replace",
+  "schedule": ["before 6am on Monday"],
+  "lockFileMaintenance": {
+    "enabled": true
+  },
+  "packageRules": [
+    {
+      "description": "Keep Vue runtime and tooling compatible",
+      "groupName": "Vue ecosystem",
+      "matchPackageNames": [
+        "vue",
+        "@vue/server-renderer",
+        "@vue/test-utils",
+        "@vue/tsconfig",
+        "@vitejs/plugin-vue",
+        "vue-tsc"
+      ]
+    },
+    {
+      "description": "Keep Tailwind runtime and Vite integration compatible",
+      "groupName": "Tailwind ecosystem",
+      "matchPackageNames": ["tailwindcss", "@tailwindcss/vite"]
+    },
+    {
+      "description": "Keep the Vite+ toolchain on one release line",
+      "groupName": "Vite+ toolchain",
+      "matchPackageNames": ["vite", "vite-plus", "@voidzero-dev/vite-plus-core"]
+    }
+  ]
+}
