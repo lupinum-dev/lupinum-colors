@@ -36,166 +36,183 @@ const faqs = [
 
 <template>
   <section id="how-it-works" class="product-guide" aria-labelledby="guide-title">
-    <div class="guide-intro">
-      <h2
-        id="guide-title"
-        tabindex="-1"
-        class="text-balance text-2xl font-semibold tracking-[-0.025em]"
-      >
-        Color scales you can explain
-      </h2>
-      <p class="max-w-3xl text-pretty text-sm leading-6 text-muted-foreground">
-        Lupinum Colors turns one HEX, RGB, HSL, or OKLCH value into a complete Tailwind-style
-        palette. The generated scale is a starting point, not a black box: every shade remains
-        visible, editable, testable, and reversible.
-      </p>
-    </div>
-
-    <div class="guide-steps" aria-label="How to generate a Tailwind color scale">
-      <article>
-        <h3>Start with any CSS color</h3>
-        <p>
-          Keep the exact color or fit it to the calibrated Tailwind curve. Choose its 50–950 anchor
-          yourself, or let the generator infer the closest position.
-        </p>
-      </article>
-      <article>
-        <h3>Shape the complete scale</h3>
-        <p>
-          Edit lightness, chroma, and hue directly. Compare nearby Tailwind families, refine the
-          light and dark ends, and undo any committed change.
-        </p>
-      </article>
-      <article>
-        <h3>Test before handoff</h3>
-        <p>
-          Preview the palette in real interface roles, inspect every foreground and background
-          contrast pair, and review gamut warnings before exporting tokens.
-        </p>
-      </article>
-      <article>
-        <h3>Copy production-ready output</h3>
-        <p>
-          Export a Tailwind CSS v4 <code>@theme</code> block, standard CSS custom properties, or
-          JSON without creating an account or uploading your brand colors.
-        </p>
-      </article>
-    </div>
-
-    <div class="method-note">
-      <div>
-        <h2 class="text-lg font-semibold tracking-[-0.015em]">Calibrated, not improvised</h2>
-        <p class="mt-2 max-w-3xl text-pretty text-sm leading-6 text-muted-foreground">
-          The generator is calibrated against all 26 color families in Tailwind CSS{{
-            tailwindVersion ? ` ${tailwindVersion}` : ''
-          }}. It uses OKLCH as the editable source of truth, then maps colors into your chosen
-          display gamut. That keeps the method inspectable and the exports internally consistent.
-        </p>
-      </div>
-      <div class="method-links" aria-label="Technical references">
-        <a href="https://tailwindcss.com/docs/colors" rel="noreferrer">Tailwind color reference</a>
-        <a href="https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html" rel="noreferrer"
-          >WCAG contrast guidance</a
+    <div class="guide-content">
+      <div class="guide-intro">
+        <h2
+          id="guide-title"
+          tabindex="-1"
+          class="text-balance text-3xl font-semibold tracking-[-0.03em]"
         >
-      </div>
-    </div>
-
-    <div class="faq" aria-labelledby="faq-title">
-      <h2 id="faq-title" class="text-lg font-semibold tracking-[-0.015em]">
-        Tailwind color generator questions
-      </h2>
-      <AccordionRoot type="single" collapsible class="faq-list">
-        <AccordionItem
-          v-for="faq in faqs"
-          :key="faq.question"
-          :value="faq.question"
-          class="faq-item"
-        >
-          <AccordionHeader>
-            <AccordionTrigger data-slot="accordion-trigger" class="faq-trigger group">
-              <span>{{ faq.question }}</span>
-              <ChevronDownIcon class="faq-chevron" aria-hidden="true" />
-            </AccordionTrigger>
-          </AccordionHeader>
-          <AccordionContent force-mount class="faq-content">
-            <div>
-              <p>{{ faq.answer }}</p>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-      </AccordionRoot>
-    </div>
-
-    <aside class="lupinum-note" aria-labelledby="lupinum-note-title">
-      <div>
-        <h2 id="lupinum-note-title" class="text-lg font-semibold tracking-[-0.015em]">
-          Need more than generated tokens?
+          Color scales you can explain
         </h2>
-        <p class="mt-2 max-w-2xl text-pretty text-sm leading-6 text-muted-foreground">
-          Lupinum designs and builds websites, brand systems, and custom software for organizations
-          working in environment, research, and technology.
+        <p>
+          Lupinum Colors turns one HEX, RGB, HSL, or OKLCH value into a complete Tailwind-style
+          palette. The generated scale is a starting point, not a black box: every shade remains
+          visible, editable, testable, and reversible.
         </p>
       </div>
-      <a
-        class="lupinum-link"
-        href="https://lupinum.com/kontakt?utm_source=colors.lupinum.com&utm_medium=referral&utm_campaign=lupinum-colors"
-        rel="noreferrer"
-      >
-        Discuss a project with Lupinum
-      </a>
-    </aside>
 
-    <footer class="product-footer">
-      <p>Lupinum Colors is a free browser-based tool made by Lupinum in Austria.</p>
-      <nav aria-label="Product, community, and legal links">
-        <a href="https://lupinum.com/" rel="noreferrer">Lupinum</a>
-        <a href="https://github.com/lupinum-dev/lupinum-colors" rel="noreferrer">Source</a>
-        <a href="https://discord.gg/RPH6SeA36N" rel="noreferrer">Discord</a>
-        <a href="https://github.com/lupinum-dev/lupinum-colors/blob/main/LICENSE" rel="noreferrer">
-          MIT License
+      <div class="guide-steps" aria-label="How to generate a Tailwind color scale">
+        <article>
+          <h3>Start with any CSS color</h3>
+          <p>
+            Keep the exact color or fit it to the calibrated Tailwind curve. Choose its 50–950
+            anchor yourself, or let the generator infer the closest position.
+          </p>
+        </article>
+        <article>
+          <h3>Shape the complete scale</h3>
+          <p>
+            Edit lightness, chroma, and hue directly. Compare nearby Tailwind families, refine the
+            light and dark ends, and undo any committed change.
+          </p>
+        </article>
+        <article>
+          <h3>Test before handoff</h3>
+          <p>
+            Preview the palette in real interface roles, inspect every foreground and background
+            contrast pair, and review gamut warnings before exporting tokens.
+          </p>
+        </article>
+        <article>
+          <h3>Copy production-ready output</h3>
+          <p>
+            Export a Tailwind CSS v4 <code>@theme</code> block, standard CSS custom properties, or
+            JSON without creating an account or uploading your brand colors.
+          </p>
+        </article>
+      </div>
+
+      <div class="method-note">
+        <div>
+          <h2 class="text-xl font-semibold tracking-[-0.02em]">Calibrated, not improvised</h2>
+          <p class="mt-2 text-pretty text-muted-foreground">
+            The generator is calibrated against all 26 color families in Tailwind CSS{{
+              tailwindVersion ? ` ${tailwindVersion}` : ''
+            }}. It uses OKLCH as the editable source of truth, then maps colors into your chosen
+            display gamut. That keeps the method inspectable and the exports internally consistent.
+          </p>
+        </div>
+        <div class="method-links" aria-label="Technical references">
+          <a href="https://tailwindcss.com/docs/colors" rel="noreferrer"
+            >Tailwind color reference</a
+          >
+          <a
+            href="https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html"
+            rel="noreferrer"
+            >WCAG contrast guidance</a
+          >
+        </div>
+      </div>
+
+      <div class="faq" aria-labelledby="faq-title">
+        <h2 id="faq-title" class="text-xl font-semibold tracking-[-0.02em]">
+          Tailwind color generator questions
+        </h2>
+        <AccordionRoot type="single" collapsible class="faq-list">
+          <AccordionItem
+            v-for="faq in faqs"
+            :key="faq.question"
+            :value="faq.question"
+            class="faq-item"
+          >
+            <AccordionHeader>
+              <AccordionTrigger data-slot="accordion-trigger" class="faq-trigger group">
+                <span>{{ faq.question }}</span>
+                <ChevronDownIcon class="faq-chevron" aria-hidden="true" />
+              </AccordionTrigger>
+            </AccordionHeader>
+            <AccordionContent force-mount class="faq-content">
+              <div>
+                <p>{{ faq.answer }}</p>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </AccordionRoot>
+      </div>
+
+      <aside class="lupinum-note" aria-labelledby="lupinum-note-title">
+        <div>
+          <h2 id="lupinum-note-title" class="text-lg font-semibold tracking-[-0.015em]">
+            Need more than generated tokens?
+          </h2>
+          <p class="mt-2 max-w-2xl text-pretty text-sm leading-6 text-muted-foreground">
+            Lupinum designs and builds websites, brand systems, and custom software for
+            organizations working in environment, research, and technology.
+          </p>
+        </div>
+        <a
+          class="lupinum-link"
+          href="https://lupinum.com/kontakt?utm_source=colors.lupinum.com&utm_medium=referral&utm_campaign=lupinum-colors"
+          rel="noreferrer"
+        >
+          Discuss a project with Lupinum
         </a>
-        <a href="https://lupinum.com/datenschutz" rel="noreferrer">Privacy</a>
-        <a href="https://lupinum.com/impressum" rel="noreferrer">Legal notice</a>
-        <a href="mailto:info@lupinum.com?subject=Lupinum%20Colors%20feedback">Send feedback</a>
-      </nav>
-    </footer>
+      </aside>
+
+      <footer class="product-footer">
+        <p>Lupinum Colors is a free browser-based tool made by Lupinum in Austria.</p>
+        <nav aria-label="Product, community, and legal links">
+          <a href="https://lupinum.com/" rel="noreferrer">Lupinum</a>
+          <a href="https://github.com/lupinum-dev/lupinum-colors" rel="noreferrer">Source</a>
+          <a href="https://discord.gg/RPH6SeA36N" rel="noreferrer">Discord</a>
+          <a
+            href="https://github.com/lupinum-dev/lupinum-colors/blob/main/LICENSE"
+            rel="noreferrer"
+          >
+            MIT License
+          </a>
+          <a href="https://lupinum.com/datenschutz" rel="noreferrer">Privacy</a>
+          <a href="https://lupinum.com/impressum" rel="noreferrer">Legal notice</a>
+          <a href="mailto:info@lupinum.com?subject=Lupinum%20Colors%20feedback">Send feedback</a>
+        </nav>
+      </footer>
+    </div>
   </section>
 </template>
 
 <style scoped>
 .product-guide {
-  display: grid;
-  gap: 40px;
-  margin-top: 40px;
-  padding-top: 40px;
+  margin-top: 48px;
+  padding-top: clamp(40px, 5vw, 72px);
   border-top: 1px solid var(--border);
+}
+.guide-content {
+  display: grid;
+  width: min(100%, 960px);
+  gap: clamp(48px, 6vw, 72px);
+  margin-inline: auto;
 }
 .guide-intro {
   display: grid;
   gap: 12px;
+  max-width: 680px;
+}
+.guide-intro p {
+  color: var(--muted-foreground);
+  font-size: 16px;
+  line-height: 1.65;
 }
 .guide-steps {
   display: grid;
-  border-block: 1px solid var(--border);
+  gap: 32px;
 }
 .guide-steps article {
-  padding: 20px 0;
-}
-.guide-steps article + article {
-  border-top: 1px solid var(--border);
+  display: grid;
+  align-content: start;
+  gap: 8px;
 }
 .guide-steps h3,
 .faq-trigger {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
 }
 .guide-steps p,
 .faq p {
   max-width: 68ch;
-  margin-top: 8px;
   color: var(--muted-foreground);
-  font-size: 14px;
-  line-height: 1.7;
+  font-size: 15px;
+  line-height: 1.65;
   text-wrap: pretty;
 }
 .guide-steps code,
@@ -207,9 +224,18 @@ const faqs = [
 .method-note,
 .lupinum-note {
   display: flex;
-  align-items: end;
+  align-items: start;
   justify-content: space-between;
   gap: 32px;
+}
+.method-note {
+  flex-direction: column;
+  gap: 20px;
+}
+.method-note p {
+  max-width: 68ch;
+  font-size: 15px;
+  line-height: 1.65;
 }
 .method-links,
 .product-footer nav {
@@ -337,25 +363,10 @@ const faqs = [
 }
 
 @media (min-width: 768px) {
-  .guide-intro {
-    grid-template-columns: minmax(240px, 0.75fr) minmax(420px, 1.25fr);
-    align-items: start;
-  }
   .guide-steps {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-  .guide-steps article {
-    padding: 24px;
-  }
-  .guide-steps article:first-child {
-    padding-left: 0;
-  }
-  .guide-steps article:last-child {
-    padding-right: 0;
-  }
-  .guide-steps article + article {
-    border-top: 0;
-    border-left: 1px solid var(--border);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 56px;
+    row-gap: 40px;
   }
 }
 
@@ -369,6 +380,18 @@ const faqs = [
   .lupinum-link {
     width: 100%;
     text-align: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .faq-chevron {
+    transition: none;
+  }
+  .faq-content,
+  .faq-content[data-state='open'] {
+    transition:
+      opacity 100ms ease,
+      visibility 0s linear;
   }
 }
 </style>

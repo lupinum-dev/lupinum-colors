@@ -13,7 +13,7 @@ describe('repository policy', () => {
     }
 
     expect(manifest.private).toBe(true)
-    expect(manifest.packageManager).toBe('pnpm@11.21.0')
+    expect(manifest.packageManager).toBe('pnpm@11.23.0')
     expect(manifest.scripts).toMatchObject({
       'audit:all': expect.any(String),
       'docs:build': expect.any(String),
