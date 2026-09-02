@@ -1,0 +1,4 @@
+Contact: mailto:info@lupinum.com
+Canonical: https://colors.lupinum.com/.well-known/security.txt
+Preferred-Languages: en, de
+Expires: 2027-09-02T00:00:00.000Z

@@ -13,6 +13,7 @@ dist
 dist-ssr
 coverage
 *.local
+/outputs/*.tgz
 
 # Editor directories and files
 .vscode/*
@@ -40,3 +41,6 @@ __screenshots__/
 !.vscode/
 !.vscode/settings.json
 !.vscode/extensions.json
+
+# AI
+.impeccable

@@ -27,7 +27,7 @@ defineProps<{ class?: HTMLAttributes['class'] }>()
         <SheetHeader>
           <SheetTitle class="text-sm">Palette inspector</SheetTitle>
           <SheetDescription>
-            Adjust the scale, compare Tailwind references, or restore an earlier version.
+            Adjust the scale, compare Tailwind references, or edit exact shade values.
           </SheetDescription>
         </SheetHeader>
         <SheetClose as-child>

@@ -1,33 +1,38 @@
 import { computed, ref } from 'vue'
-import { contrastRatios, formatHex, formatOklch, mapToGamut, perceptualDistance } from '@/color'
-import { generatePalette } from '@/palette'
+import { perceptualDistance } from '@/color'
+import { evaluatePalette, generatePalette, PaletteInputError } from '@/palette'
 import { loadTailwindFamilies } from '@/tailwind-data'
 import {
   SHADE_NAMES,
+  type DisplayShade,
   type Gamut,
   type OklchColor,
+  type Palette,
   type PaletteResult,
+  type ReadonlyPalette,
   type SeedMode,
   type Shade,
 } from '@/types'
 import { CHANNEL_MODES, type ChannelMode } from './channels'
 import { clonePalette, rankReferences } from './palette-tools'
-
-export interface DisplayShade {
-  shade: Shade
-  raw: OklchColor
-  mapped: OklchColor
-  css: string
-  hex: string
-  inGamut: boolean
-  contrastOnWhite: number
-  contrastOnBlack: number
-}
+import {
+  decodeSharedPalette,
+  encodeSharedPalette,
+  paletteToTuple,
+  SharedPaletteError,
+  tupleToPalette,
+  type SharedPaletteV1,
+} from './shared-palette'
 
 export type OverlayMarker = 'diamond' | 'square' | 'triangle' | 'circle'
 export type OverlayLine = 'dash' | 'dot' | 'dash-dot' | 'long-dash'
+export type InspectorTab = 'references' | 'selection' | 'shade'
+export interface GenerationIssue {
+  field: 'name' | 'color' | 'form'
+  message: string
+}
 
-export interface OverlayConfig {
+interface OverlayConfig {
   name: string
   enabled: boolean
   color: string
@@ -38,23 +43,21 @@ export interface OverlayConfig {
 }
 
 export interface ActiveOverlay extends OverlayConfig {
-  colors: Record<Shade, OklchColor>
-}
-
-export interface HistoryEntry {
-  label: string
-  palette: Record<Shade, OklchColor>
+  colors: ReadonlyPalette
 }
 
 // Line and marker styles identify references, so comparison data can use one
 // quiet ink instead of introducing unexplained brand colors into the canvas.
-const OVERLAY_COLORS = ['#64748b', '#64748b', '#64748b', '#64748b']
+const OVERLAY_COLOR = '#64748b'
 const OVERLAY_LINES: OverlayLine[] = ['dash', 'dash-dot', 'dot', 'long-dash']
 const OVERLAY_MARKERS: OverlayMarker[] = ['diamond', 'square', 'triangle', 'circle']
 
 // Generation inputs
-export const paletteName = ref('brand')
-export const seedColor = ref('#16661f')
+const DEFAULT_PALETTE_NAME = 'brand'
+const DEFAULT_SEED_COLOR = '#16661f'
+
+export const paletteName = ref(DEFAULT_PALETTE_NAME)
+export const seedColor = ref(DEFAULT_SEED_COLOR)
 export const seedMode = ref<SeedMode>('exact')
 export const anchor = ref<Shade | 'auto'>('auto')
 export const gamut = ref<Gamut>('srgb')
@@ -63,65 +66,102 @@ export const huePath = ref('balanced')
 // Editor state
 export const channelMode = ref<ChannelMode>('oklch')
 export const hiddenChannels = ref<string[]>([])
-export const generationError = ref<string | null>(null)
+export const inspectorTab = ref<InspectorTab>('selection')
+export const selectedShade = ref<Shade>(500)
+export const generationIssue = ref<GenerationIssue | null>(null)
+export const generationError = computed(() => generationIssue.value?.message ?? null)
 export const lastResult = ref<PaletteResult | null>(null)
 export const baselineVisible = ref(false)
 export const overlayConfigs = ref<OverlayConfig[]>([])
-export const previewShades = ref<Record<Shade, OklchColor> | null>(null)
+export const previewShades = ref<Palette | null>(null)
 export const previewLabel = ref<string | null>(null)
+export const shareLoadError = ref<string | null>(null)
 
 // Canonical editable state. Preview, alternate spaces, display colors and exports derive from it.
-export const shades = ref<Record<Shade, OklchColor> | null>(null)
-export const generatedShades = ref<Record<Shade, OklchColor> | null>(null)
-export const history = ref<HistoryEntry[]>([])
+export const shades = ref<Palette | null>(null)
+export const generatedShades = ref<Palette | null>(null)
+export const history = ref<Palette[]>([])
 export const historyIndex = ref(-1)
-let continuousEditStart: Record<Shade, OklchColor> | null = null
+let continuousEditStart: Palette | null = null
+let restoringSharedPalette = false
 
-export const referenceFamilies = loadTailwindFamilies()
+const referenceFamilies = loadTailwindFamilies()
 
 export const effectiveShades = computed(() => previewShades.value ?? shades.value)
-export const resolvedAnchor = computed<Shade>(() =>
-  anchor.value === 'auto' ? (lastResult.value?.configuration.anchor ?? 500) : anchor.value,
-)
+export const committedPaletteName = computed(() => lastResult.value?.name ?? paletteName.value)
 export const canUndo = computed(() => historyIndex.value > 0)
 export const canRedo = computed(
   () => historyIndex.value >= 0 && historyIndex.value < history.value.length - 1,
 )
+export const canReset = computed(
+  () =>
+    shades.value !== null &&
+    generatedShades.value !== null &&
+    !palettesMatch(shades.value, generatedShades.value),
+)
 
-export function generate(): void {
+export function generate(): boolean {
+  const selectedHuePath = huePath.value
+  let result: PaletteResult
+
   try {
-    const result = generatePalette({
-      name: paletteName.value,
-      color: seedColor.value,
-      seed: seedMode.value,
-      anchor: anchor.value,
-      gamut: gamut.value,
-      huePath: huePath.value,
-    })
-    lastResult.value = result
-    generationError.value = null
-    const generated = Object.fromEntries(
-      SHADE_NAMES.map((shade) => [shade, { ...result.shades[shade].raw }]),
-    ) as Record<Shade, OklchColor>
-    generatedShades.value = generated
-    shades.value = clonePalette(generated)
-    previewShades.value = null
-    previewLabel.value = null
-    history.value = [{ label: 'Generated palette', palette: clonePalette(generated) }]
-    historyIndex.value = 0
-    initializeOverlays(generated, result.reference.kind)
+    result = generateWithHuePath(selectedHuePath)
   } catch (error) {
-    generationError.value = error instanceof Error ? error.message : String(error)
-    if (huePath.value !== 'balanced') {
-      huePath.value = 'balanced'
-      generate()
+    if (selectedHuePath === 'balanced') {
+      setGenerationError(error)
+      return false
     }
+
+    try {
+      result = generateWithHuePath('balanced')
+      huePath.value = 'balanced'
+    } catch {
+      setGenerationError(error)
+      return false
+    }
+  }
+
+  applyGeneration(result)
+  return true
+}
+
+function generateWithHuePath(selectedHuePath: string): PaletteResult {
+  return generatePalette({
+    name: paletteName.value,
+    color: seedColor.value,
+    seed: seedMode.value,
+    anchor: anchor.value,
+    gamut: gamut.value,
+    huePath: selectedHuePath,
+  })
+}
+
+function applyGeneration(result: PaletteResult): void {
+  lastResult.value = result
+  generationIssue.value = null
+  const generated = Object.fromEntries(
+    SHADE_NAMES.map((shade) => [shade, { ...result.shades[shade].raw }]),
+  ) as Palette
+  generatedShades.value = generated
+  shades.value = clonePalette(generated)
+  clearPreview()
+  history.value = [clonePalette(generated)]
+  historyIndex.value = 0
+  selectedShade.value = result.configuration.anchor
+  initializeOverlays(generated, result.reference.kind)
+  syncSharedPaletteUrl()
+}
+
+function setGenerationError(error: unknown): void {
+  generationIssue.value = {
+    field: error instanceof PaletteInputError ? error.field : 'form',
+    message: error instanceof Error ? error.message : String(error),
   }
 }
 
 export function resetToGenerated(): void {
-  if (!generatedShades.value) return
-  commitPalette(generatedShades.value, 'Reset to generated palette')
+  if (!generatedShades.value || !canReset.value) return
+  commitPalette(generatedShades.value)
 }
 
 export function setShadeColor(shade: Shade, color: OklchColor): void {
@@ -130,27 +170,23 @@ export function setShadeColor(shade: Shade, color: OklchColor): void {
   shades.value = { ...shades.value, [shade]: color }
 }
 
-export function replaceShades(palette: Record<Shade, OklchColor>): void {
-  if (!shades.value) return
-  clearPreview()
-  shades.value = clonePalette(palette)
-}
-
 export function beginContinuousEdit(): void {
   continuousEditStart = shades.value ? clonePalette(shades.value) : null
   clearPreview()
 }
 
-export function endContinuousEdit(label: string): void {
-  if (!shades.value || !continuousEditStart) return
+export function endContinuousEdit(): void {
+  const current = shades.value
+  const start = continuousEditStart
+  if (!current || !start) return
   const changed = SHADE_NAMES.some(
-    (shade) => perceptualDistance(shades.value![shade], continuousEditStart![shade]) > 1e-10,
+    (shade) => perceptualDistance(current[shade], start[shade]) > 1e-10,
   )
   continuousEditStart = null
-  if (changed) pushHistory(label, shades.value)
+  if (changed) pushHistory(current)
 }
 
-export function setPreview(palette: Record<Shade, OklchColor>, label: string): void {
+export function setPreview(palette: ReadonlyPalette, label: string): void {
   previewShades.value = clonePalette(palette)
   previewLabel.value = label
 }
@@ -162,42 +198,141 @@ export function clearPreview(): void {
 
 export function applyPreview(): void {
   if (!previewShades.value) return
-  commitPalette(previewShades.value, previewLabel.value ?? 'Applied transformation')
+  commitPalette(previewShades.value)
 }
 
-export function commitPalette(palette: Record<Shade, OklchColor>, label: string): void {
+export function commitPalette(palette: ReadonlyPalette): boolean {
+  if (shades.value && palettesMatch(shades.value, palette)) {
+    clearPreview()
+    return false
+  }
   shades.value = clonePalette(palette)
   clearPreview()
-  pushHistory(label, palette)
+  pushHistory(palette)
+  return true
 }
 
 export function undo(): void {
   if (!canUndo.value) return
   historyIndex.value -= 1
-  shades.value = clonePalette(history.value[historyIndex.value].palette)
+  shades.value = clonePalette(history.value[historyIndex.value])
   clearPreview()
+  syncSharedPaletteUrl()
 }
 
 export function redo(): void {
   if (!canRedo.value) return
   historyIndex.value += 1
-  shades.value = clonePalette(history.value[historyIndex.value].palette)
+  shades.value = clonePalette(history.value[historyIndex.value])
   clearPreview()
+  syncSharedPaletteUrl()
 }
 
-export function restoreHistory(index: number): void {
-  const entry = history.value[index]
-  if (!entry) return
-  historyIndex.value = index
-  shades.value = clonePalette(entry.palette)
-  clearPreview()
-}
-
-function pushHistory(label: string, palette: Record<Shade, OklchColor>): void {
+function pushHistory(palette: ReadonlyPalette): void {
+  const current = history.value[historyIndex.value]
+  if (current && palettesMatch(current, palette)) return
   const retained = history.value.slice(0, historyIndex.value + 1)
-  retained.push({ label, palette: clonePalette(palette) })
+  retained.push(clonePalette(palette))
   history.value = retained
   historyIndex.value = retained.length - 1
+  syncSharedPaletteUrl()
+}
+
+export type SharedPaletteRestoreResult = 'absent' | 'restored' | 'invalid'
+
+export function restoreSharedPaletteFromHash(hash: string): SharedPaletteRestoreResult {
+  let shared: SharedPaletteV1 | null
+  try {
+    shared = decodeSharedPalette(hash)
+  } catch (error) {
+    shareLoadError.value =
+      error instanceof SharedPaletteError ? error.message : 'This share link could not be loaded.'
+    return 'invalid'
+  }
+  if (!shared) return 'absent'
+
+  const [name, color, seed, savedAnchor, savedGamut, savedHuePath] = shared.r
+  restoringSharedPalette = true
+  paletteName.value = name
+  seedColor.value = color
+  seedMode.value = seed
+  anchor.value = savedAnchor
+  gamut.value = savedGamut
+  huePath.value = savedHuePath
+
+  try {
+    const result = generateWithHuePath(savedHuePath)
+    applyGeneration(result)
+    const baseline = tupleToPalette(shared.b)
+    const current = tupleToPalette(shared.p)
+    generatedShades.value = baseline
+    shades.value = current
+    history.value = [clonePalette(current)]
+    historyIndex.value = 0
+    selectedShade.value = result.configuration.anchor
+    initializeOverlays(baseline, result.reference.kind)
+    shareLoadError.value = null
+  } catch (error) {
+    shareLoadError.value =
+      error instanceof Error ? `This share link is not compatible: ${error.message}` : String(error)
+    paletteName.value = DEFAULT_PALETTE_NAME
+    seedColor.value = DEFAULT_SEED_COLOR
+    seedMode.value = 'exact'
+    anchor.value = 'auto'
+    gamut.value = 'srgb'
+    huePath.value = 'balanced'
+    restoringSharedPalette = false
+    return 'invalid'
+  }
+
+  restoringSharedPalette = false
+  syncSharedPaletteUrl()
+  return 'restored'
+}
+
+export function dismissShareLoadError(): void {
+  shareLoadError.value = null
+}
+
+export function selectShade(shade: Shade): void {
+  selectedShade.value = shade
+  inspectorTab.value = 'shade'
+}
+
+function syncSharedPaletteUrl(): void {
+  if (
+    restoringSharedPalette ||
+    typeof window === 'undefined' ||
+    !shades.value ||
+    !generatedShades.value
+  ) {
+    return
+  }
+  const payload: SharedPaletteV1 = {
+    v: 1,
+    r: [
+      paletteName.value,
+      seedColor.value,
+      seedMode.value,
+      anchor.value,
+      gamut.value,
+      huePath.value,
+    ],
+    b: paletteToTuple(generatedShades.value),
+    p: paletteToTuple(shades.value),
+  }
+  try {
+    const url = new URL(window.location.href)
+    url.hash = encodeSharedPalette(payload)
+    window.history.replaceState(window.history.state, '', url)
+  } catch (error) {
+    shareLoadError.value =
+      error instanceof Error ? error.message : 'The live share URL could not be updated.'
+  }
+}
+
+function palettesMatch(left: ReadonlyPalette, right: ReadonlyPalette): boolean {
+  return SHADE_NAMES.every((shade) => perceptualDistance(left[shade], right[shade]) <= 1e-10)
 }
 
 export const referenceRanks = computed(() => {
@@ -215,7 +350,11 @@ export const activeOverlays = computed<ActiveOverlay[]>(() =>
     }),
 )
 
-export function updateOverlay(name: string, update: Partial<OverlayConfig>): void {
+type OverlayUpdate = Partial<
+  Pick<OverlayConfig, 'enabled' | 'color' | 'line' | 'marker' | 'opacity'>
+>
+
+export function updateOverlay(name: string, update: OverlayUpdate): void {
   overlayConfigs.value = overlayConfigs.value.map((overlay) =>
     overlay.name === name ? { ...overlay, ...update } : overlay,
   )
@@ -238,7 +377,7 @@ export function addOverlay(name: string): void {
   overlayConfigs.value.push({
     name,
     enabled: true,
-    color: OVERLAY_COLORS[index % OVERLAY_COLORS.length],
+    color: OVERLAY_COLOR,
     line: OVERLAY_LINES[index % OVERLAY_LINES.length],
     marker: OVERLAY_MARKERS[index % OVERLAY_MARKERS.length],
     opacity: 0.72,
@@ -250,10 +389,7 @@ export function removeOverlay(name: string): void {
   overlayConfigs.value = overlayConfigs.value.filter((overlay) => overlay.name !== name)
 }
 
-function initializeOverlays(
-  palette: Record<Shade, OklchColor>,
-  kind: 'chromatic' | 'neutral',
-): void {
+function initializeOverlays(palette: ReadonlyPalette, kind: 'chromatic' | 'neutral'): void {
   const ranked = rankReferences(
     palette,
     referenceFamilies.filter((family) => family.kind === kind),
@@ -261,7 +397,7 @@ function initializeOverlays(
   overlayConfigs.value = ranked.map((rank, index) => ({
     name: rank.family.name,
     enabled: index === 0,
-    color: OVERLAY_COLORS[index],
+    color: OVERLAY_COLOR,
     line: OVERLAY_LINES[index],
     marker: OVERLAY_MARKERS[index],
     opacity: 0.72,
@@ -285,49 +421,29 @@ export function toggleChannel(key: string): void {
     : [...hiddenChannels.value, key]
 }
 
-export const displayShades = computed<DisplayShade[]>(() => {
+const paletteEvaluation = computed(() => {
   const current = effectiveShades.value
-  if (!current) return []
-  return SHADE_NAMES.map((shade) => {
-    const raw = current[shade]
-    const { color: mapped, inGamut } = mapToGamut(raw, gamut.value)
-    const contrasts = contrastRatios(mapped)
-    return {
-      shade,
-      raw,
-      mapped,
-      css: formatOklch(mapped),
-      hex: formatHex(mapped),
-      inGamut,
-      contrastOnWhite: contrasts.onWhite,
-      contrastOnBlack: contrasts.onBlack,
-    }
-  })
+  return current ? evaluatePalette(current, gamut.value) : null
+})
+
+export const displayShades = computed<DisplayShade[]>(() => {
+  const evaluation = paletteEvaluation.value
+  return evaluation ? SHADE_NAMES.map((shade) => ({ shade, ...evaluation.shades[shade] })) : []
 })
 
 export const warnings = computed<string[]>(() => {
-  const current = effectiveShades.value
-  if (!current) return []
+  const evaluation = paletteEvaluation.value
+  if (!evaluation) return []
   const messages: string[] = []
-  const monotonic = SHADE_NAMES.every(
-    (shade, index) => index === 0 || current[SHADE_NAMES[index - 1]].l > current[shade].l,
-  )
-  if (!monotonic) {
+  if (!evaluation.lightnessMonotonic) {
     messages.push(
       'Some darker-numbered shades are lighter than the shade before them. Adjust the lightness curve to restore a steady light-to-dark order.',
     )
   }
 
-  let minimumDelta = Number.POSITIVE_INFINITY
-  for (let index = 1; index < SHADE_NAMES.length; index += 1) {
-    minimumDelta = Math.min(
-      minimumDelta,
-      perceptualDistance(current[SHADE_NAMES[index - 1]], current[SHADE_NAMES[index]]),
-    )
-  }
-  if (minimumDelta < 0.01) {
+  if (evaluation.minimumAdjacentDelta < 0.01) {
     messages.push(
-      `Some neighboring shades are very similar (minimum OKLab difference: ${minimumDelta.toFixed(4)}). Increase the space between them if they need to look distinct.`,
+      `Some neighboring shades are very similar (minimum OKLab difference: ${evaluation.minimumAdjacentDelta.toFixed(4)}). Increase the space between them if they need to look distinct.`,
     )
   }
 

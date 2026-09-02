@@ -1,4 +1,5 @@
-import type { DisplayShade } from './palette-store'
+import { formatCssVariables } from '../export'
+import type { DisplayShade } from '../types'
 
 export type ExportFormat = 'css' | 'tailwind' | 'json'
 
@@ -13,7 +14,5 @@ export function formatExport(format: ExportFormat, name: string, shades: Display
     )
   }
 
-  const opening = format === 'tailwind' ? '@theme {' : ':root {'
-  const lines = shades.map((entry) => `  --color-${name}-${entry.shade}: ${entry.css};`)
-  return [opening, ...lines, '}'].join('\n')
+  return formatCssVariables(name, shades, format)
 }

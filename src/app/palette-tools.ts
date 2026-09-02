@@ -1,5 +1,5 @@
 import { circularHueDistance, perceptualDistance } from '../color'
-import { SHADE_NAMES, type OklchColor, type PaletteFamily, type Shade } from '../types'
+import { SHADE_NAMES, type Palette, type PaletteFamily, type ReadonlyPalette } from '../types'
 
 export interface PaletteEndOptions {
   light: {
@@ -22,16 +22,13 @@ export interface ReferenceRank {
   hueDelta: number
 }
 
-export function clonePalette(palette: Record<Shade, OklchColor>): Record<Shade, OklchColor> {
-  return Object.fromEntries(SHADE_NAMES.map((shade) => [shade, { ...palette[shade] }])) as Record<
-    Shade,
-    OklchColor
-  >
+export function clonePalette(palette: ReadonlyPalette): Palette {
+  return Object.fromEntries(SHADE_NAMES.map((shade) => [shade, { ...palette[shade] }])) as Palette
 }
 
 export function rankReferences(
-  palette: Record<Shade, OklchColor>,
-  families: PaletteFamily[],
+  palette: ReadonlyPalette,
+  families: readonly PaletteFamily[],
 ): ReferenceRank[] {
   return families
     .map((family) => {
@@ -69,10 +66,7 @@ export function rankReferences(
 // follows a monotone cubic tail that blends the existing direction into an
 // even endpoint ramp, avoiding the abrupt penultimate-stop collapse caused by
 // per-stop multipliers. The selected tail length is always honored.
-export function adjustPaletteEnds(
-  palette: Record<Shade, OklchColor>,
-  options: PaletteEndOptions,
-): Record<Shade, OklchColor> {
+export function adjustPaletteEnds(palette: ReadonlyPalette, options: PaletteEndOptions): Palette {
   const result = clonePalette(palette)
   const lastIndex = SHADE_NAMES.length - 1
   const spread = Math.round(clamp(options.spread, 1, 4))
@@ -116,7 +110,7 @@ function tailWeight(distance: number, spread: number): number {
 }
 
 function tailChroma(
-  palette: Record<Shade, OklchColor>,
+  palette: ReadonlyPalette,
   startIndex: number,
   endIndex: number,
   index: number,

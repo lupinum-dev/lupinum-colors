@@ -1,5 +1,5 @@
 ---
-name: Tailwind OKLCH Palette
+name: Lupinum Colors
 description: A precise theme-aware workbench for shaping tonal curves, previewing interfaces, and exporting production-ready color tokens.
 colors:
   instrument-black: 'oklch(0.115 0 0)'
@@ -15,8 +15,16 @@ colors:
   destructive: 'oklch(0.704 0.191 22.216)'
   quiet-border: 'oklch(1 0 0 / 12%)'
   field-border: 'oklch(1 0 0 / 15%)'
-  focus-ring: 'oklch(0.556 0 0)'
+  focus-ring-light: 'oklch(0.62 0 0)'
+  focus-ring-dark: 'oklch(0.556 0 0)'
+  baseline-ink: '#d8d9df'
 typography:
+  application-title:
+    fontFamily: 'Geist, ui-sans-serif, system-ui, sans-serif'
+    fontSize: '13px'
+    fontWeight: 600
+    lineHeight: 1.25
+    letterSpacing: '-0.01em'
   headline:
     fontFamily: 'Geist, ui-sans-serif, system-ui, sans-serif'
     fontSize: '14px'
@@ -48,6 +56,7 @@ typography:
     lineHeight: 1.5
     letterSpacing: 'normal'
 rounded:
+  xs: '4px'
   sm: '6px'
   md: '8px'
   lg: '10px'
@@ -95,7 +104,7 @@ components:
     height: '20px'
 ---
 
-# Design System: Tailwind OKLCH Palette
+# Design System: Lupinum Colors
 
 ## Overview
 
@@ -103,7 +112,7 @@ components:
 
 This interface is a precise color instrument, not a decorated dashboard. It uses a canonical shadcn neutral workbench with persistent light and dark modes, so controls stay familiar, compact, and quiet while the palette canvas remains the dominant visual event. The product feels technical, analytical, and direct without becoming sterile.
 
-Structure follows the work itself: establish the source, shape the curve, select and inspect a tonal range, then copy production-ready tokens. Dense controls are acceptable when they clarify that sequence; ornamental panels, promotional composition, and unexplained color effects are not.
+Structure follows the work itself: establish the source, shape individual curve points, refine the scale ends, then test and copy production-ready tokens. Dense controls are acceptable when they clarify that sequence; ornamental panels, promotional composition, and unexplained color effects are not.
 
 **Key Characteristics:**
 
@@ -140,7 +149,8 @@ The workbench is deliberately achromatic in both themes. Neutral surfaces and re
 - **Muted Ink:** Secondary descriptions, hints, inactive labels, and nonessential icons.
 - **Quiet Border:** The primary structural divider, visible enough to clarify grouping without outlining every element loudly.
 - **Field Border:** A slightly stronger boundary for interactive fields.
-- **Focus Ring:** A neutral midtone halo for keyboard focus; the canvas uses a cool blue focus stroke where a neutral ring would disappear.
+- **Focus Rings:** Theme-specific neutral midtone halos provide at least 3:1 contrast against adjacent light and dark workbench surfaces. Rings are always full opacity, including on the canvas.
+- **Baseline Ink:** A fixed quiet gray identifies the generated comparison curve over changing palette data; it is not application chrome.
 
 ### Named Rules
 
@@ -154,7 +164,7 @@ The workbench is deliberately achromatic in both themes. Neutral surfaces and re
 **Body Font:** Geist (with `ui-sans-serif`, `system-ui`, and `sans-serif` fallbacks)  
 **Label/Mono Font:** Geist Mono (with `ui-monospace`, `SFMono-Regular`, and `monospace` fallbacks)
 
-**Character:** Geist keeps the workbench compact, neutral, and highly legible. Geist Mono separates exact values, color syntax, keyboard commands, history indexes, and export output from explanatory interface copy.
+**Character:** Geist keeps the workbench compact, neutral, and highly legible. Geist Mono separates exact values, color syntax, keyboard commands, and export output from explanatory interface copy.
 
 ### Hierarchy
 
@@ -163,7 +173,7 @@ The workbench is deliberately achromatic in both themes. Neutral surfaces and re
 - **Body and description:** 14px/20px regular; the default for supporting copy and control text.
 - **Label:** 14px/16px medium; matches the shared shadcn label and keeps every field consistent.
 - **Caption and badge:** 12px/16px; used for quiet hints, state labels, and compact metadata.
-- **Dense data:** 11px/16px in Geist Mono only where the editor or 13×13 matrix needs the extra density.
+- **Dense data:** 11px/16px in Geist Mono only where the editor, exact shade controls, or 13×13 matrix needs the extra density.
 
 ### Named Rules
 
@@ -175,7 +185,9 @@ The application is a responsive workstation inside one shared shell capped at 28
 
 Below 1280px the source, canvas, and inspector follow one semantic column. From 1280px the source spans a canvas-plus-360px-inspector layout. From 1792px the source becomes a sticky 288–320px rail, the canvas receives all flexible width, and the inspector grows between 360px and 420px. On small screens the inspector opens in a bottom sheet.
 
-The editor preserves a minimum internal width of 720px and scrolls horizontally only inside its own frame. Its height grows from a 480px laptop floor through 760px on standard desktops and up to 920px on large displays. Selected-shade values belong to the Selection inspector instead of a separate card below the canvas.
+Compact desktop density is preserved for fine-pointer devices. Under coarse-pointer media queries, isolated buttons, tabs, fields, selects, checkboxes, slider thumbs, and key links expose an interactive dimension of at least 44px. The canvas keeps separate 24×24px SVG hit areas over its visible markers, while exact numeric fields provide the reliable touch-editing path.
+
+The editor preserves a minimum internal width of 720px and scrolls horizontally only inside its own frame. Its height grows from a 480px laptop floor through 760px on standard desktops and up to 920px on large displays. Scale-end controls belong to the inspector instead of a separate card below the canvas.
 
 Preview, Contrast, and Tokens share one tabbed analysis work plane below the editor. Preview combines a realistic product workspace with a diagnostic component specimen; its Auto, Light, and Dark appearance is independent from the surrounding app. Structural preview surfaces remain neutral and the generated scale is applied only to explicit color roles.
 
@@ -193,7 +205,7 @@ Depth is primarily tonal and structural: a near-black ground, slightly lighter c
 
 - **Control Lift:** An extra-small shadow on outline controls, fields, sliders, and small swatches. It separates interactive objects from the dark bed without making them float.
 - **Surface Ring:** A one-pixel, low-contrast perimeter on cards. Treat it as structural definition, not decoration.
-- **Selection Inset:** White inset strokes inside selected shade strips. These belong to data selection state, not general elevation.
+- **Handle Focus:** The same full-opacity theme focus token identifies the active keyboard handle without changing the surrounding shade field.
 
 ### Named Rules
 
@@ -203,7 +215,7 @@ Depth is primarily tonal and structural: a near-black ground, slightly lighter c
 
 The system uses one coherent radius family derived from a 10px base: gently curved controls, slightly larger panel corners, and full pills only for compact badges or circular markers. Cards and the editor frame use the larger 14px corner; fields and standard controls use 8px; dense internal rows use 10px or less.
 
-The palette canvas is geometrically stricter than the surrounding chrome. Its eleven shade strips meet without internal rounding, while only the outer editor frame is clipped. Curve handles use circles, reference markers vary deliberately, and range controls use square handles so interaction roles stay visually distinct.
+The palette canvas is geometrically stricter than the surrounding chrome. Its eleven shade strips meet without internal rounding, while only the outer editor frame is clipped. Editable curves use stable redundant geometry: lightness or value uses a solid line with circles, chroma or saturation uses a dashed line with squares, and hue uses a dotted line with diamonds. Reference markers vary independently so comparison roles stay visually distinct.
 
 Use the component that matches the interaction. Tabs switch views, joined ToggleGroups select one mode or filter, and independent actions remain separate Buttons. Joined controls use one rounded 8px perimeter with flush internal edges; unrelated actions keep their own 8px corners and spacing. Palette strips, matrix/table geometry, line tabs, and divided lists remain continuous data structures rather than collections of floating pills.
 
@@ -215,7 +227,7 @@ Use the component that matches the interaction. Tabs switch views, joined Toggle
 
 - **Shape:** Compact rounded rectangles with 8px corners, 32px small height or 36px default height, medium-weight labels, and tightly aligned 16px icons.
 - **Primary:** Instrument White background with Action Ink text. Use for the next decisive operation: Generate, Apply, or the primary empty-state action.
-- **Hover / Focus:** Primary hover reduces surface intensity; all keyboard-focus states gain a 3px neutral ring and a clearer border. Pointer activation moves down by one pixel.
+- **Hover / Focus:** Primary hover reduces surface intensity; all keyboard-focus states gain a full-opacity 3px neutral ring and a clearer border. Pointer activation moves down by one pixel.
 - **Outline / Ghost / Secondary:** Outline controls keep a transparent dark surface and quiet boundary; ghost controls reveal a Muted Graphite fill on hover; secondary controls use Control Graphite for selected low-emphasis states.
 
 ### Chips
@@ -234,20 +246,20 @@ Use the component that matches the interaction. Tabs switch views, joined Toggle
 ### Inputs / Fields
 
 - **Style:** Transparent to lightly tinted dark fill, 8px corners, 36px default height, and Field Border. Numeric and color-string fields use the data face.
-- **Focus:** The border shifts to Focus Ring and gains a 3px ring at half opacity.
+- **Focus:** The border shifts to the theme Focus Ring and gains a full-opacity 3px ring. The light ring is `oklch(0.62 0 0)` and the dark ring is `oklch(0.556 0 0)`; both clear 3:1 against adjacent surfaces.
 - **Error / Disabled:** Error fields shift border and ring to Signal Red. Disabled controls retain their geometry, reduce opacity, and remove pointer interaction.
 
 ### Navigation
 
-The sticky header is a compact instrument bar rather than a destination nav. It pairs the product identity at left with reversible history and reset actions at right. On small screens, long labels and keyboard hints collapse before the actions do. The inspector uses three equal-width line tabs with a crisp 2px active underline and no filled tab container.
+The sticky header is a compact instrument bar rather than a destination nav. It pairs the product identity at left with undo, redo, and reset actions at right. On small screens, long labels and keyboard hints collapse before the actions do. The inspector uses three equal-width line tabs with a crisp 2px active underline and no filled tab container.
 
 ### Palette Canvas
 
-The canvas is the signature component. Eleven edge-to-edge tonal strips carry shade labels and hex values at the base, while lightness, chroma, and hue curves sit directly over the color field. Selected shades use strong inset white rails; the active point has an inner outline; generated baselines are dashed and quieter than editable curves. Reference overlays must combine line style, marker shape, labels, and color.
+The canvas is the signature component. Eleven edge-to-edge tonal strips carry shade labels and available sRGB hex values at the base, while lightness, chroma, and hue curves sit directly over the color field. Focused handles use the shared focus token; generated baselines are dashed and quieter than editable curves. Editable channels and reference overlays must combine line style, marker shape, labels, stable order, and color.
 
 ### Inspector
 
-The inspector is a stable 360–420px control rail for References, Selection, and History. Selection begins with the active shade's swatch, exact values, channel inputs, contrast results, and gamut status. Reference and history entries are continuous lists separated by spacing and quiet dividers. Reversible previews retain a sticky Apply/Cancel bar.
+The inspector is a stable 360–420px control rail for References, Scale ends, and Shade. Scale-end controls expose lightness, tint retention, blend length, and before/after values. Shade exposes the selected swatch, current output, and three exact numeric channels for the active color model; alternate color spaces are derived views over canonical OKLCH. Reversible previews retain a sticky Apply/Cancel bar.
 
 ## Do's and Don'ts
 
@@ -255,10 +267,10 @@ The inspector is a stable 360–420px control rail for References, Selection, an
 
 - **Do** keep the palette canvas visually dominant and give it the flexible workspace width.
 - **Do** keep workbench surfaces achromatic so generated colors remain the visual evidence.
-- **Do** expose transformations with labels, numeric inputs, previews, reset paths, and history.
+- **Do** expose transformations with labels, keyboard-operable controls, exact numeric fields, reversible previews, reset, undo, and redo.
 - **Do** pair curve color with line pattern, marker shape, labels, and stable ordering.
 - **Do** use Geist Mono for exact color data and Geist for interface language.
-- **Do** preserve the compact 32px and 36px control heights and the established radius family.
+- **Do** preserve compact 32px and 36px control heights for fine pointers, then expand hit areas to at least 44px for coarse pointers.
 
 ### Don't:
 

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-08-13T18:41:55Z",
-  "title": "Design System: Tailwind OKLCH Palette",
+  "generatedAt": "2026-09-02T07:36:03Z",
+  "title": "Design System: Lupinum Colors",
   "extensions": {
     "colorMeta": {
       "instrument-black": {
@@ -82,19 +82,32 @@
         "canonical": "oklch(1 0 0 / 15%)",
         "tonalRamp": ["oklch(0.15 0 0)", "oklch(0.25 0 0)", "oklch(0.38 0 0)", "oklch(0.5 0 0)", "oklch(0.62 0 0)", "oklch(0.74 0 0)", "oklch(0.86 0 0)", "oklch(0.95 0 0)"]
       },
-      "focus-ring": {
+      "focus-ring-light": {
         "role": "neutral",
-        "displayName": "Focus Ring",
+        "displayName": "Light Focus Ring",
+        "canonical": "oklch(0.62 0 0)",
+        "tonalRamp": ["oklch(0.15 0 0)", "oklch(0.25 0 0)", "oklch(0.38 0 0)", "oklch(0.5 0 0)", "oklch(0.62 0 0)", "oklch(0.74 0 0)", "oklch(0.86 0 0)", "oklch(0.95 0 0)"]
+      },
+      "focus-ring-dark": {
+        "role": "neutral",
+        "displayName": "Dark Focus Ring",
         "canonical": "oklch(0.556 0 0)",
+        "tonalRamp": ["oklch(0.15 0 0)", "oklch(0.25 0 0)", "oklch(0.38 0 0)", "oklch(0.5 0 0)", "oklch(0.62 0 0)", "oklch(0.74 0 0)", "oklch(0.86 0 0)", "oklch(0.95 0 0)"]
+      },
+      "baseline-ink": {
+        "role": "neutral",
+        "displayName": "Baseline Ink",
+        "canonical": "#d8d9df",
         "tonalRamp": ["oklch(0.15 0 0)", "oklch(0.25 0 0)", "oklch(0.38 0 0)", "oklch(0.5 0 0)", "oklch(0.62 0 0)", "oklch(0.74 0 0)", "oklch(0.86 0 0)", "oklch(0.95 0 0)"]
       }
     },
     "typographyMeta": {
+      "application-title": { "displayName": "Application Title", "purpose": "The compact product identity in the 52px toolbar." },
       "headline": { "displayName": "Workbench Headline", "purpose": "Product identity and primary workbench headings." },
       "title": { "displayName": "Instrument Title", "purpose": "Compact uppercase inspector section headings." },
       "body": { "displayName": "Interface Body", "purpose": "Descriptions, instructions, and standard control copy." },
       "label": { "displayName": "Control Label", "purpose": "Field labels and compact action text." },
-      "data": { "displayName": "Measured Data", "purpose": "Color values, measurements, shortcuts, history indexes, and export code." }
+      "data": { "displayName": "Measured Data", "purpose": "Color values, exact shade channels, measurements, shortcuts, and export code." }
     },
     "shadows": [
       { "name": "control-lift", "value": "0 1px 2px 0 rgb(0 0 0 / 0.05)", "purpose": "Subtle separation for controls, fields, sliders, and swatches." },
@@ -108,7 +121,9 @@
     "breakpoints": [
       { "name": "sm", "value": "640px" },
       { "name": "lg", "value": "1024px" },
-      { "name": "xl", "value": "1280px" }
+      { "name": "xl", "value": "1280px" },
+      { "name": "wide", "value": "1792px" },
+      { "name": "coarse-pointer", "value": "(pointer: coarse)" }
     ]
   },
   "components": [
@@ -118,7 +133,7 @@
       "refersTo": "button-primary",
       "description": "The decisive action for generating, applying, or advancing a palette operation.",
       "html": "<button class=\"ds-btn-primary\">Generate</button>",
-      "css": ".ds-btn-primary { height: 36px; padding: 0 10px; border: 1px solid transparent; border-radius: 8px; background: var(--primary, oklch(0.922 0 0)); color: var(--primary-foreground, oklch(0.205 0 0)); font: 500 14px/1.25 'Geist', ui-sans-serif, system-ui, sans-serif; transition: background-color 150ms cubic-bezier(.4,0,.2,1), box-shadow 150ms cubic-bezier(.4,0,.2,1), transform 150ms cubic-bezier(.4,0,.2,1); } .ds-btn-primary:hover { background: color-mix(in oklch, var(--primary, oklch(0.922 0 0)) 80%, transparent); } .ds-btn-primary:focus-visible { outline: none; border-color: var(--ring, oklch(0.556 0 0)); box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring, oklch(0.556 0 0)) 50%, transparent); } .ds-btn-primary:active { transform: translateY(1px); }"
+      "css": ".ds-btn-primary { height: 36px; padding: 0 10px; border: 1px solid transparent; border-radius: 8px; background: var(--primary, oklch(0.922 0 0)); color: var(--primary-foreground, oklch(0.205 0 0)); font: 500 14px/1.25 'Geist', ui-sans-serif, system-ui, sans-serif; transition: background-color 150ms cubic-bezier(.4,0,.2,1), box-shadow 150ms cubic-bezier(.4,0,.2,1), transform 150ms cubic-bezier(.4,0,.2,1); } .ds-btn-primary:hover { background: color-mix(in oklch, var(--primary, oklch(0.922 0 0)) 80%, transparent); } .ds-btn-primary:focus-visible { outline: none; border-color: var(--ring, oklch(0.556 0 0)); box-shadow: 0 0 0 3px var(--ring, oklch(0.556 0 0)); } .ds-btn-primary:active { transform: translateY(1px); } @media (pointer: coarse) { .ds-btn-primary { min-height: 44px; } }"
     },
     {
       "name": "Outline Button",
@@ -126,7 +141,7 @@
       "refersTo": "button-outline",
       "description": "A reversible or supporting action that remains visible without competing with the primary step.",
       "html": "<button class=\"ds-btn-outline\">Reset curve</button>",
-      "css": ".ds-btn-outline { height: 36px; padding: 0 10px; border: 1px solid var(--border, oklch(1 0 0 / 12%)); border-radius: 8px; background: color-mix(in oklch, var(--input, oklch(1 0 0 / 15%)) 30%, transparent); color: var(--foreground, oklch(0.985 0 0)); font: 500 14px/1.25 'Geist', ui-sans-serif, system-ui, sans-serif; box-shadow: 0 1px 2px rgb(0 0 0 / .05); transition: background-color 150ms cubic-bezier(.4,0,.2,1), box-shadow 150ms cubic-bezier(.4,0,.2,1), transform 150ms cubic-bezier(.4,0,.2,1); } .ds-btn-outline:hover { background: color-mix(in oklch, var(--input, oklch(1 0 0 / 15%)) 50%, transparent); } .ds-btn-outline:focus-visible { outline: none; border-color: var(--ring, oklch(0.556 0 0)); box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring, oklch(0.556 0 0)) 50%, transparent); } .ds-btn-outline:active { transform: translateY(1px); }"
+      "css": ".ds-btn-outline { height: 36px; padding: 0 10px; border: 1px solid var(--border, oklch(1 0 0 / 12%)); border-radius: 8px; background: color-mix(in oklch, var(--input, oklch(1 0 0 / 15%)) 30%, transparent); color: var(--foreground, oklch(0.985 0 0)); font: 500 14px/1.25 'Geist', ui-sans-serif, system-ui, sans-serif; box-shadow: 0 1px 2px rgb(0 0 0 / .05); transition: background-color 150ms cubic-bezier(.4,0,.2,1), box-shadow 150ms cubic-bezier(.4,0,.2,1), transform 150ms cubic-bezier(.4,0,.2,1); } .ds-btn-outline:hover { background: color-mix(in oklch, var(--input, oklch(1 0 0 / 15%)) 50%, transparent); } .ds-btn-outline:focus-visible { outline: none; border-color: var(--ring, oklch(0.556 0 0)); box-shadow: 0 0 0 3px var(--ring, oklch(0.556 0 0)); } .ds-btn-outline:active { transform: translateY(1px); } @media (pointer: coarse) { .ds-btn-outline { min-height: 44px; } }"
     },
     {
       "name": "Data Input",
@@ -134,14 +149,14 @@
       "refersTo": "input",
       "description": "A compact field for source colors, channel values, and other exact input.",
       "html": "<input class=\"ds-input-data\" value=\"oklch(74.7% 0.2412 143.2)\" aria-label=\"Color value\">",
-      "css": ".ds-input-data { width: 260px; height: 36px; padding: 4px 10px; border: 1px solid var(--input, oklch(1 0 0 / 15%)); border-radius: 8px; background: color-mix(in oklch, var(--input, oklch(1 0 0 / 15%)) 30%, transparent); color: var(--foreground, oklch(0.985 0 0)); font: 400 13px/1.5 'Geist Mono', ui-monospace, SFMono-Regular, monospace; box-shadow: 0 1px 2px rgb(0 0 0 / .05); transition: border-color 150ms cubic-bezier(.4,0,.2,1), box-shadow 150ms cubic-bezier(.4,0,.2,1); } .ds-input-data:hover { border-color: color-mix(in oklch, var(--foreground, oklch(0.985 0 0)) 22%, transparent); } .ds-input-data:focus-visible { outline: none; border-color: var(--ring, oklch(0.556 0 0)); box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring, oklch(0.556 0 0)) 50%, transparent); }"
+      "css": ".ds-input-data { width: 260px; height: 36px; padding: 4px 10px; border: 1px solid var(--input, oklch(1 0 0 / 15%)); border-radius: 8px; background: color-mix(in oklch, var(--input, oklch(1 0 0 / 15%)) 30%, transparent); color: var(--foreground, oklch(0.985 0 0)); font: 400 13px/1.5 'Geist Mono', ui-monospace, SFMono-Regular, monospace; box-shadow: 0 1px 2px rgb(0 0 0 / .05); transition: border-color 150ms cubic-bezier(.4,0,.2,1), box-shadow 150ms cubic-bezier(.4,0,.2,1); } .ds-input-data:hover { border-color: color-mix(in oklch, var(--foreground, oklch(0.985 0 0)) 22%, transparent); } .ds-input-data:focus-visible { outline: none; border-color: var(--ring, oklch(0.556 0 0)); box-shadow: 0 0 0 3px var(--ring, oklch(0.556 0 0)); } @media (pointer: coarse) { .ds-input-data { min-height: 44px; } }"
     },
     {
       "name": "Native Select",
       "kind": "input",
       "description": "The compact native control for generation choices and inspector methods.",
       "html": "<label class=\"ds-select-wrap\"><select class=\"ds-select\" aria-label=\"Hue path\"><option>balanced</option><option>constant</option></select><svg class=\"ds-select-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m6 9 6 6 6-6\"/></svg></label>",
-      "css": ".ds-select-wrap { position: relative; display: inline-flex; } .ds-select { appearance: none; width: 190px; height: 36px; padding: 4px 32px 4px 10px; border: 1px solid var(--input, oklch(1 0 0 / 15%)); border-radius: 8px; background: color-mix(in oklch, var(--input, oklch(1 0 0 / 15%)) 30%, transparent); color: var(--foreground, oklch(0.985 0 0)); font: 400 14px/1.25 'Geist', ui-sans-serif, system-ui, sans-serif; box-shadow: 0 1px 2px rgb(0 0 0 / .05); transition: background-color 150ms cubic-bezier(.4,0,.2,1), border-color 150ms cubic-bezier(.4,0,.2,1), box-shadow 150ms cubic-bezier(.4,0,.2,1); } .ds-select:hover { background: color-mix(in oklch, var(--input, oklch(1 0 0 / 15%)) 50%, transparent); } .ds-select:focus-visible { outline: none; border-color: var(--ring, oklch(0.556 0 0)); box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring, oklch(0.556 0 0)) 50%, transparent); } .ds-select-icon { position: absolute; width: 16px; height: 16px; right: 10px; top: 10px; fill: none; stroke: var(--muted-foreground, oklch(0.708 0 0)); stroke-width: 2; pointer-events: none; }"
+      "css": ".ds-select-wrap { position: relative; display: inline-flex; } .ds-select { appearance: none; width: 190px; height: 36px; padding: 4px 32px 4px 10px; border: 1px solid var(--input, oklch(1 0 0 / 15%)); border-radius: 8px; background: color-mix(in oklch, var(--input, oklch(1 0 0 / 15%)) 30%, transparent); color: var(--foreground, oklch(0.985 0 0)); font: 400 14px/1.25 'Geist', ui-sans-serif, system-ui, sans-serif; box-shadow: 0 1px 2px rgb(0 0 0 / .05); transition: background-color 150ms cubic-bezier(.4,0,.2,1), border-color 150ms cubic-bezier(.4,0,.2,1), box-shadow 150ms cubic-bezier(.4,0,.2,1); } .ds-select:hover { background: color-mix(in oklch, var(--input, oklch(1 0 0 / 15%)) 50%, transparent); } .ds-select:focus-visible { outline: none; border-color: var(--ring, oklch(0.556 0 0)); box-shadow: 0 0 0 3px var(--ring, oklch(0.556 0 0)); } .ds-select-icon { position: absolute; width: 16px; height: 16px; right: 10px; top: 10px; fill: none; stroke: var(--muted-foreground, oklch(0.708 0 0)); stroke-width: 2; pointer-events: none; } @media (pointer: coarse) { .ds-select { min-height: 44px; } }"
     },
     {
       "name": "Measured Badge",
@@ -149,7 +164,7 @@
       "refersTo": "badge-outline",
       "description": "A quiet pill for exact colors, reference metadata, and accessibility measurements.",
       "html": "<span class=\"ds-badge-measured\">oklch(74.7% 0.2412 143.2)</span>",
-      "css": ".ds-badge-measured { display: inline-flex; align-items: center; height: 20px; padding: 2px 8px; border: 1px solid var(--border, oklch(1 0 0 / 12%)); border-radius: 999px; background: transparent; color: var(--foreground, oklch(0.985 0 0)); font: 500 11px/1.5 'Geist Mono', ui-monospace, SFMono-Regular, monospace; transition: background-color 150ms cubic-bezier(.4,0,.2,1), color 150ms cubic-bezier(.4,0,.2,1), box-shadow 150ms cubic-bezier(.4,0,.2,1); } .ds-badge-measured:hover { background: var(--muted, oklch(0.215 0 0)); color: var(--muted-foreground, oklch(0.708 0 0)); } .ds-badge-measured:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring, oklch(0.556 0 0)) 50%, transparent); }"
+      "css": ".ds-badge-measured { display: inline-flex; align-items: center; height: 20px; padding: 2px 8px; border: 1px solid var(--border, oklch(1 0 0 / 12%)); border-radius: 999px; background: transparent; color: var(--foreground, oklch(0.985 0 0)); font: 500 11px/1.5 'Geist Mono', ui-monospace, SFMono-Regular, monospace; transition: background-color 150ms cubic-bezier(.4,0,.2,1), color 150ms cubic-bezier(.4,0,.2,1), box-shadow 150ms cubic-bezier(.4,0,.2,1); } .ds-badge-measured:hover { background: var(--muted, oklch(0.215 0 0)); color: var(--muted-foreground, oklch(0.708 0 0)); } .ds-badge-measured:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ring, oklch(0.556 0 0)); }"
     },
     {
       "name": "Workbench Card",
@@ -157,14 +172,14 @@
       "refersTo": "card",
       "description": "The standard compact container for source controls, selected shade details, and token export.",
       "html": "<section class=\"ds-card\"><header class=\"ds-card-head\"><strong>Palette source</strong><span>Choose a seed and define how the scale should be generated.</span></header><div class=\"ds-card-body\">Compact instrument controls live here.</div></section>",
-      "css": ".ds-card { width: 420px; overflow: hidden; border-radius: 14px; background: var(--card, oklch(0.175 0 0)); color: var(--card-foreground, oklch(0.985 0 0)); box-shadow: 0 1px 2px rgb(0 0 0 / .05), 0 0 0 1px color-mix(in oklch, var(--foreground, oklch(0.985 0 0)) 10%, transparent); font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; } .ds-card-head { display: grid; gap: 4px; padding: 16px; border-bottom: 1px solid var(--border, oklch(1 0 0 / 12%)); } .ds-card-head strong { font-size: 14px; font-weight: 500; } .ds-card-head span { color: var(--muted-foreground, oklch(0.708 0 0)); font-size: 14px; } .ds-card-body { padding: 16px; color: var(--muted-foreground, oklch(0.708 0 0)); font-size: 13px; } .ds-card:hover { box-shadow: 0 1px 2px rgb(0 0 0 / .08), 0 0 0 1px color-mix(in oklch, var(--foreground, oklch(0.985 0 0)) 14%, transparent); } .ds-card:focus-within { box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring, oklch(0.556 0 0)) 35%, transparent); }"
+      "css": ".ds-card { width: 420px; overflow: hidden; border-radius: 14px; background: var(--card, oklch(0.175 0 0)); color: var(--card-foreground, oklch(0.985 0 0)); box-shadow: 0 1px 2px rgb(0 0 0 / .05), 0 0 0 1px color-mix(in oklch, var(--foreground, oklch(0.985 0 0)) 10%, transparent); font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; } .ds-card-head { display: grid; gap: 4px; padding: 16px; border-bottom: 1px solid var(--border, oklch(1 0 0 / 12%)); } .ds-card-head strong { font-size: 14px; font-weight: 500; } .ds-card-head span { color: var(--muted-foreground, oklch(0.708 0 0)); font-size: 14px; } .ds-card-body { padding: 16px; color: var(--muted-foreground, oklch(0.708 0 0)); font-size: 13px; } .ds-card:hover { box-shadow: 0 1px 2px rgb(0 0 0 / .08), 0 0 0 1px color-mix(in oklch, var(--foreground, oklch(0.985 0 0)) 14%, transparent); } .ds-card:focus-within { box-shadow: 0 0 0 3px var(--ring, oklch(0.556 0 0)); }"
     },
     {
       "name": "Inspector Line Tabs",
       "kind": "nav",
       "description": "Three equal-width tabs that switch inspector context without adding a filled navigation block.",
-      "html": "<div class=\"ds-tabs\" role=\"tablist\"><button class=\"ds-tab\" role=\"tab\">References</button><button class=\"ds-tab ds-tab-active\" role=\"tab\" aria-selected=\"true\">Selection</button><button class=\"ds-tab\" role=\"tab\">History</button></div>",
-      "css": ".ds-tabs { display: grid; grid-template-columns: repeat(3, 1fr); width: 360px; height: 48px; padding: 0 12px; border-bottom: 1px solid var(--border, oklch(1 0 0 / 12%)); background: transparent; } .ds-tab { position: relative; border: 1px solid transparent; background: transparent; color: var(--muted-foreground, oklch(0.708 0 0)); font: 500 14px/1.25 'Geist', ui-sans-serif, system-ui, sans-serif; transition: color 150ms cubic-bezier(.4,0,.2,1), box-shadow 150ms cubic-bezier(.4,0,.2,1); } .ds-tab:hover, .ds-tab-active { color: var(--foreground, oklch(0.985 0 0)); } .ds-tab-active::after { position: absolute; right: 0; bottom: -1px; left: 0; height: 2px; background: var(--foreground, oklch(0.985 0 0)); content: ''; } .ds-tab:focus-visible { outline: none; border-color: var(--ring, oklch(0.556 0 0)); box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring, oklch(0.556 0 0)) 50%, transparent); }"
+      "html": "<div class=\"ds-tabs\" role=\"tablist\"><button class=\"ds-tab\" role=\"tab\">References</button><button class=\"ds-tab\" role=\"tab\">Scale ends</button><button class=\"ds-tab ds-tab-active\" role=\"tab\" aria-selected=\"true\">Shade</button></div>",
+      "css": ".ds-tabs { display: grid; grid-template-columns: repeat(3, 1fr); width: 360px; height: 48px; padding: 0 12px; border-bottom: 1px solid var(--border, oklch(1 0 0 / 12%)); background: transparent; } .ds-tab { position: relative; border: 1px solid transparent; background: transparent; color: var(--muted-foreground, oklch(0.708 0 0)); font: 500 14px/1.25 'Geist', ui-sans-serif, system-ui, sans-serif; transition: color 150ms cubic-bezier(.4,0,.2,1), box-shadow 150ms cubic-bezier(.4,0,.2,1); } .ds-tab:hover, .ds-tab-active { color: var(--foreground, oklch(0.985 0 0)); } .ds-tab-active::after { position: absolute; right: 0; bottom: -1px; left: 0; height: 2px; background: var(--foreground, oklch(0.985 0 0)); content: ''; } .ds-tab:focus-visible { outline: none; border-color: var(--ring, oklch(0.556 0 0)); box-shadow: 0 0 0 3px var(--ring, oklch(0.556 0 0)); } @media (pointer: coarse) { .ds-tab { min-height: 44px; } }"
     },
     {
       "name": "Palette Strip",
@@ -176,9 +191,9 @@
   ],
   "narrative": {
     "northStar": "The Calibrated Instrument",
-    "overview": "This interface is a precise color instrument, not a decorated dashboard. It uses a canonical shadcn neutral-dark workbench so controls are familiar, compact, and quiet while the palette canvas remains the dominant visual event. The product feels technical, analytical, and direct without becoming sterile.\n\nStructure follows the work itself: establish the source, shape the curve, select and inspect a tonal range, then copy production-ready tokens. Dense controls are acceptable when they clarify that sequence; ornamental panels, promotional composition, and unexplained color effects are not.",
+    "overview": "This interface is a precise color instrument, not a decorated dashboard. It uses a canonical shadcn neutral workbench with persistent light and dark modes, so controls stay familiar, compact, and quiet while the palette canvas remains the dominant visual event. The product feels technical, analytical, and direct without becoming sterile.\n\nStructure follows the work itself: establish the source, shape individual curve points, refine the scale ends, then test and copy production-ready tokens. Dense controls are acceptable when they clarify that sequence; ornamental panels, promotional composition, and unexplained color effects are not.",
     "keyCharacteristics": [
-      "Neutral dark surfaces keep attention on the editable palette.",
+      "Neutral light and dark surfaces keep attention on the editable palette.",
       "Compact controls expose precision without inflating the interface.",
       "Quiet borders and tonal layering separate regions with minimal visual noise.",
       "Color, line patterns, markers, labels, and order identify data together.",
@@ -195,10 +210,10 @@
     "dos": [
       "Do keep the palette canvas visually dominant and give it the flexible workspace width.",
       "Do keep workbench surfaces achromatic so generated colors remain the visual evidence.",
-      "Do expose transformations with labels, numeric inputs, previews, reset paths, and history.",
+      "Do expose transformations with labels, keyboard-operable controls, exact numeric fields, reversible previews, reset, undo, and redo.",
       "Do pair curve color with line pattern, marker shape, labels, and stable ordering.",
       "Do use Geist Mono for exact color data and Geist for interface language.",
-      "Do preserve the compact 32px and 36px control heights and the established radius family."
+      "Do preserve compact 32px and 36px control heights for fine pointers, then expand hit areas to at least 44px for coarse pointers."
     ],
     "donts": [
       "Don't turn the interface into a generic decorated dashboard with ornamental cards or marketing composition.",

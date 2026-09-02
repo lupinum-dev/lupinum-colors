@@ -2,7 +2,7 @@
 import { CheckIcon, ClipboardIcon } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { formatExport, type ExportFormat } from '@/app/format'
-import type { DisplayShade } from '@/app/palette-store'
+import type { DisplayShade } from '@/types'
 import ContrastGrid from '@/components/ContrastGrid.vue'
 import PalettePreview from '@/components/PalettePreview.vue'
 import { Button } from '@/components/ui/button'
@@ -20,7 +20,7 @@ const props = defineProps<{
 
 const mode = ref<AnalysisMode>('preview')
 const exportFormat = ref<ExportFormat>('tailwind')
-const copied = ref(false)
+const copyStatus = ref<'idle' | 'success' | 'error'>('idle')
 const exportText = computed(() => formatExport(exportFormat.value, props.name, props.shades))
 
 function selectExportFormat(value: unknown): void {
@@ -28,9 +28,15 @@ function selectExportFormat(value: unknown): void {
 }
 
 async function copyExport(): Promise<void> {
-  await navigator.clipboard.writeText(exportText.value)
-  copied.value = true
-  setTimeout(() => (copied.value = false), 1200)
+  try {
+    await navigator.clipboard.writeText(exportText.value)
+    copyStatus.value = 'success'
+    setTimeout(() => {
+      if (copyStatus.value === 'success') copyStatus.value = 'idle'
+    }, 1200)
+  } catch {
+    copyStatus.value = 'error'
+  }
 }
 </script>
 
@@ -103,11 +109,17 @@ async function copyExport(): Promise<void> {
               </ToggleGroupItem>
             </ToggleGroup>
             <Button variant="outline" size="sm" @click="copyExport">
-              <CheckIcon v-if="copied" data-icon="inline-start" />
+              <CheckIcon v-if="copyStatus === 'success'" data-icon="inline-start" />
               <ClipboardIcon v-else data-icon="inline-start" />
-              {{ copied ? 'Copied' : 'Copy code' }}
+              {{ copyStatus === 'success' ? 'Copied' : 'Copy code' }}
             </Button>
           </div>
+          <p class="sr-only" aria-live="polite">
+            {{ copyStatus === 'success' ? 'Export copied to clipboard.' : '' }}
+          </p>
+          <p v-if="copyStatus === 'error'" class="copy-error" role="status">
+            Copy failed. Select the code below and copy it manually.
+          </p>
         </div>
         <ScrollArea class="h-[480px] w-full rounded-b-xl bg-muted/20">
           <pre class="min-w-max p-4 font-mono text-xs leading-relaxed text-foreground">{{
@@ -126,6 +138,12 @@ async function copyExport(): Promise<void> {
   border-start-end-radius: var(--radius-xl);
   background: color-mix(in oklch, var(--card) 90%, transparent);
   backdrop-filter: blur(16px) saturate(135%);
+}
+.copy-error {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--destructive);
+  font-size: 12px;
 }
 @media (prefers-reduced-transparency: reduce) {
   .analysis-toolbar {

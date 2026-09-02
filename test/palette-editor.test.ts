@@ -3,17 +3,21 @@
 import { createSSRApp } from 'vue'
 import { renderToString } from '@vue/server-renderer'
 import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vite-plus/test'
+import { describe, expect, it, vi } from 'vite-plus/test'
 import {
   canRedo,
   canUndo,
+  committedPaletteName,
   commitPalette,
   displayShades,
   gamut,
   generate,
   generationError,
+  generationIssue,
   historyIndex,
+  huePath,
   overlayConfigs,
+  paletteName,
   seedColor,
   shades,
   warnings,
@@ -59,7 +63,13 @@ describe('palette editor rendering', () => {
     expect(wrapper.findAll('.line')).toHaveLength(3)
     expect(wrapper.find('.line').attributes('d')).toContain(' C ')
     expect(wrapper.find('.pin-ring').exists()).toBe(false)
-    expect(wrapper.findAll('.handle')).toHaveLength(33)
+    expect(wrapper.findAll('.handle-hit')).toHaveLength(33)
+    const firstHandle = wrapper.get('.handle-hit')
+    expect(firstHandle.attributes('aria-label')).toContain('Lightness, shade')
+    expect(firstHandle.attributes('aria-valuetext')).toMatch(/%$/)
+    expect(wrapper.findAll('[data-marker="circle"]')).toHaveLength(11)
+    expect(wrapper.findAll('[data-marker="square"]')).toHaveLength(11)
+    expect(wrapper.findAll('[data-marker="diamond"]')).toHaveLength(11)
   })
 
   it('keeps the complete workbench populated after generating from the UI', async () => {
@@ -81,7 +91,7 @@ describe('palette editor rendering', () => {
     expect(
       wrapper.get<HTMLSelectElement>('select[aria-label="Reference palette to add"]').element.value,
     ).not.toBe('')
-    expect(wrapper.findAll('.handle')).toHaveLength(33)
+    expect(wrapper.findAll('.handle-hit')).toHaveLength(33)
     expect(wrapper.text()).toContain('brand-500')
     wrapper.unmount()
   })
@@ -103,15 +113,79 @@ describe('palette editor rendering', () => {
     wrapper.unmount()
   })
 
+  it('does not invent sRGB hex values for wider gamut output', async () => {
+    seedColor.value = '#d9e900'
+    gamut.value = 'display-p3'
+    generate()
+
+    expect(displayShades.value.every((shade) => shade.hex === undefined)).toBe(true)
+    const wrapper = mount(PaletteEditor)
+    await wrapper.vm.$nextTick()
+    expect(wrapper.findAll('.strip-hex').every((label) => label.text() === '—')).toBe(true)
+    wrapper.unmount()
+  })
+
+  it('keeps committed identity and hue state when generation fails for another input', async () => {
+    paletteName.value = 'brand'
+    seedColor.value = '#89E5D2'
+    huePath.value = 'balanced'
+    generate()
+    huePath.value = 'emerald'
+
+    const wrapper = mount(App)
+    await wrapper.get('#name').setValue('not valid!')
+
+    expect(committedPaletteName.value).toBe('brand')
+    const exportTab = wrapper.findAll('[role="tab"]').find((tab) => tab.text() === 'Export')!
+    await exportTab.trigger('mousedown', { button: 0 })
+    expect(wrapper.get('pre').text()).toContain('--color-brand-500')
+    expect(wrapper.get('pre').text()).not.toContain('not valid!')
+
+    generate()
+    expect(generationError.value).toMatch(/Palette name/)
+    expect(generationIssue.value?.field).toBe('name')
+    expect(huePath.value).toBe('emerald')
+    expect(committedPaletteName.value).toBe('brand')
+
+    wrapper.unmount()
+    paletteName.value = 'brand'
+    huePath.value = 'balanced'
+  })
+
+  it('links generation errors to the invalid field and moves focus there', async () => {
+    const wrapper = mount(App, { attachTo: document.body })
+    await wrapper.get('#name').setValue('not valid!')
+    await wrapper.get('button.generate').trigger('click')
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.get('#name').attributes('aria-invalid')).toBe('true')
+    expect(wrapper.get('#name').attributes('aria-describedby')).toBe('name-error')
+    expect(wrapper.get('#name-error').text()).toContain('Palette name')
+    expect(document.activeElement).toBe(wrapper.get('#name').element)
+    wrapper.unmount()
+  })
+
+  it('keeps the live palette fragment while moving to page sections', async () => {
+    vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => undefined)
+    generate()
+    const hash = window.location.hash
+    const wrapper = mount(App)
+
+    await wrapper.get('a[href="#how-it-works"]').trigger('click')
+    expect(window.location.hash).toBe(hash)
+    await wrapper.get('a[aria-label="Lupinum Colors, back to generator"]').trigger('click')
+    expect(window.location.hash).toBe(hash)
+    await wrapper.get('a.fixed[href="#main-content"]').trigger('click')
+    expect(window.location.hash).toBe(hash)
+    wrapper.unmount()
+  })
+
   it('supports application undo and redo shortcuts without hijacking text fields', async () => {
     seedColor.value = '#F7F6F4'
     generate()
     const wrapper = mount(App)
     const originalChroma = shades.value![500].c
-    commitPalette(
-      { ...shades.value!, 500: { ...shades.value![500], c: originalChroma * 0.5 } },
-      'Test keyboard history',
-    )
+    commitPalette({ ...shades.value!, 500: { ...shades.value![500], c: originalChroma * 0.5 } })
 
     expect(canUndo.value).toBe(true)
     const committedIndex = historyIndex.value

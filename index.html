@@ -2,9 +2,75 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="/favicon.ico" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tailwind OKLCH Palette</title>
+    <meta name="application-name" content="Lupinum Colors" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="theme-color" content="#fbfbfb" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)" />
+    <title>Tailwind Color Shade Generator — Lupinum Colors</title>
+    <meta
+      name="description"
+      content="Generate and refine a Tailwind CSS 50–950 color scale from any HEX, RGB, HSL, or OKLCH color. Check contrast and export Tailwind v4, CSS, or JSON."
+    />
+    <link rel="canonical" href="https://colors.lupinum.com/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://colors.lupinum.com/" />
+    <meta property="og:site_name" content="Lupinum Colors" />
+    <meta property="og:title" content="Tailwind Color Shade Generator" />
+    <meta
+      property="og:description"
+      content="Build a calibrated 50–950 color scale, shape its OKLCH curves, check every contrast pair, and export production-ready tokens."
+    />
+    <meta property="og:image" content="https://colors.lupinum.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Lupinum Colors Tailwind shade generator" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Tailwind Color Shade Generator" />
+    <meta
+      name="twitter:description"
+      content="Generate, refine, test, and export Tailwind CSS color scales with a precise OKLCH editor."
+    />
+    <meta name="twitter:image" content="https://colors.lupinum.com/og-image.png" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://colors.lupinum.com/#website",
+            "name": "Lupinum Colors",
+            "alternateName": ["Colors by Lupinum", "colors.lupinum.com"],
+            "url": "https://colors.lupinum.com/"
+          },
+          {
+            "@type": "WebApplication",
+            "@id": "https://colors.lupinum.com/#application",
+            "name": "Tailwind shade generator",
+            "url": "https://colors.lupinum.com/",
+            "description": "A free Tailwind CSS color shade generator and OKLCH palette editor.",
+            "applicationCategory": "DeveloperApplication",
+            "browserRequirements": "Requires JavaScript",
+            "operatingSystem": "Any",
+            "isPartOf": { "@id": "https://colors.lupinum.com/#website" },
+            "creator": {
+              "@type": "Organization",
+              "name": "Lupinum",
+              "url": "https://lupinum.com/"
+            },
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "EUR"
+            }
+          }
+        ]
+      }
+    </script>
     <script>
       try {
         const storedTheme = localStorage.getItem('theme')
@@ -27,7 +93,7 @@
       FORM: Canonical shadcn workbench, pinned by the user's three references; seed shadcn-instrument-canon.
       FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
     -->
-    <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
+    <div id="app"><!--app-html--></div>
+    <script type="module" src="/src/entry-client.ts"></script>
   </body>
 </html>

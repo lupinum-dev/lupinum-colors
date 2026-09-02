@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 
 import { mount } from '@vue/test-utils'
-import { beforeEach, describe, expect, it } from 'vite-plus/test'
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { displayShades, generate, paletteName, seedColor } from '../src/app/palette-store'
 import AnalysisWorkspace from '../src/components/AnalysisWorkspace.vue'
 import ContrastGrid from '../src/components/ContrastGrid.vue'
@@ -25,6 +25,25 @@ describe('analysis workspace', () => {
     expect(wrapper.text()).toContain('Contrast checker')
     await tabs.find((tab) => tab.text() === 'Export')!.trigger('mousedown', { button: 0 })
     expect(wrapper.text()).toContain('Export palette')
+  })
+
+  it('announces clipboard success and offers manual recovery on failure', async () => {
+    const writeText = vi
+      .fn()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('no'))
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
+    const wrapper = mount(AnalysisWorkspace, {
+      props: { name: 'brand', shades: displayShades.value, appTheme: 'light' },
+    })
+    const exportTab = wrapper.findAll('[role="tab"]').find((tab) => tab.text() === 'Export')!
+    await exportTab.trigger('mousedown', { button: 0 })
+    const copy = wrapper.findAll('button').find((button) => button.text().includes('Copy code'))!
+    await copy.trigger('click')
+    expect(wrapper.text()).toContain('Export copied to clipboard.')
+    await copy.trigger('click')
+    expect(wrapper.text()).toContain('Select the code below and copy it manually')
+    expect(wrapper.get('pre').text()).toContain('--color-brand-500')
   })
 
   it('lets the preview appearance differ from the app theme', async () => {

@@ -13,6 +13,7 @@ export default defineConfig({
     options: { typeAware: true, typeCheck: true },
   },
   fmt: {
+    ignorePatterns: ['.impeccable/design.json', 'reference/*.generated.json'],
     semi: false,
     singleQuote: true,
   },

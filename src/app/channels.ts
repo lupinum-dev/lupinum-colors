@@ -7,6 +7,7 @@ export type ChannelMode = 'oklch' | 'hsv' | 'hsl'
 export interface Channel {
   key: string
   label: string
+  name: string
   min: number
   max: number
   step: number
@@ -56,11 +57,12 @@ function writeSrgb(color: OklchColor, mode: SrgbMode, key: SrgbKey, value: numbe
   }
 }
 
-function srgbChannel(mode: SrgbMode, key: SrgbKey, label: string): Channel {
+function srgbChannel(mode: SrgbMode, key: SrgbKey, label: string, name: string): Channel {
   const isHue = key === 'h'
   return {
     key,
     label,
+    name,
     min: 0,
     max: isHue ? 360 : 1,
     step: isHue ? 0.1 : 0.001,
@@ -76,6 +78,7 @@ export const CHANNEL_MODES: Record<ChannelMode, Channel[]> = {
     {
       key: 'l',
       label: 'L',
+      name: 'Lightness',
       min: 0,
       max: 1,
       step: 0.001,
@@ -86,6 +89,7 @@ export const CHANNEL_MODES: Record<ChannelMode, Channel[]> = {
     {
       key: 'c',
       label: 'C',
+      name: 'Chroma',
       min: 0,
       max: 0.4,
       step: 0.001,
@@ -96,6 +100,7 @@ export const CHANNEL_MODES: Record<ChannelMode, Channel[]> = {
     {
       key: 'h',
       label: 'H',
+      name: 'Hue',
       min: 0,
       max: 360,
       step: 0.1,
@@ -104,6 +109,14 @@ export const CHANNEL_MODES: Record<ChannelMode, Channel[]> = {
       set: (color, value) => ({ ...color, h: normalizeHue(value) }),
     },
   ],
-  hsv: [srgbChannel('hsv', 'h', 'H'), srgbChannel('hsv', 's', 'S'), srgbChannel('hsv', 'v', 'V')],
-  hsl: [srgbChannel('hsl', 'h', 'H'), srgbChannel('hsl', 's', 'S'), srgbChannel('hsl', 'l', 'L')],
+  hsv: [
+    srgbChannel('hsv', 'h', 'H', 'Hue'),
+    srgbChannel('hsv', 's', 'S', 'Saturation'),
+    srgbChannel('hsv', 'v', 'V', 'Value'),
+  ],
+  hsl: [
+    srgbChannel('hsl', 'h', 'H', 'Hue'),
+    srgbChannel('hsl', 's', 'S', 'Saturation'),
+    srgbChannel('hsl', 'l', 'L', 'Lightness'),
+  ],
 }

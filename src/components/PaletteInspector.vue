@@ -1,6 +1,28 @@
 <script setup lang="ts">
 import { XIcon } from '@lucide/vue'
 import { computed, ref, watch } from 'vue'
+import { CHANNEL_MODES, type Channel } from '@/app/channels'
+import {
+  activeEndpointPreset,
+  applyEndpointPreview,
+  cancelEndpointPreview,
+  endpointAfter,
+  endpointBefore,
+  endpointDarkLightness,
+  endpointDarkLightnessMaximum,
+  endpointDarkLightnessModel,
+  endpointDarkTint,
+  endpointDarkTintModel,
+  endpointLightness,
+  endpointLightnessMinimum,
+  endpointLightnessModel,
+  endpointLightTint,
+  endpointLightTintModel,
+  endpointPresets,
+  endpointSpread,
+  selectEndpointPreset,
+  selectEndpointSpread,
+} from '@/app/palette-end-store'
 import {
   OVERLAY_DASH,
   OVERLAY_LINE_OPTIONS,
@@ -9,158 +31,43 @@ import {
 } from '@/app/overlay-style'
 import {
   addOverlay,
-  applyPreview,
-  canRedo,
-  canUndo,
-  clearPreview,
-  effectiveShades,
-  history,
-  historyIndex,
+  channelMode,
+  commitPalette,
+  displayShades,
+  inspectorTab,
   overlayConfigs,
   type OverlayLine,
   type OverlayMarker,
   previewLabel,
   previewShades,
-  redo,
   referenceRanks,
   removeOverlay,
-  restoreHistory,
-  setPreview,
+  selectedShade,
   shades,
   soloOverlay,
-  undo,
   updateOverlay,
 } from '@/app/palette-store'
-import { adjustPaletteEnds, clonePalette, type PaletteEndOptions } from '@/app/palette-tools'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Slider } from '@/components/ui/slider'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { formatHex } from '@/color'
-import { formatOklch } from '@/index'
-import { SHADE_NAMES, type OklchColor, type Shade } from '@/types'
+import { formatHex, formatOklch } from '@/color'
+import { SHADE_NAMES, type OklchColor } from '@/types'
 
-type InspectorTab = 'references' | 'selection' | 'history'
-type EndpointPreset = 'original' | 'neutral' | 'contrast'
-interface EndpointControlState {
-  lightness: number
-  darkLightness: number
-  lightTint: number
-  darkTint: number
-  spread: number
-}
-
-const tabs: { id: InspectorTab; label: string }[] = [
+const tabs = [
   { id: 'references', label: 'References' },
   { id: 'selection', label: 'Scale ends' },
-  { id: 'history', label: 'History' },
-]
-const tab = ref<InspectorTab>('selection')
+  { id: 'shade', label: 'Shade' },
+] as const
 const addReferenceName = ref('')
-const endpointLightness = ref(1)
-const endpointDarkLightness = ref(0)
-const endpointLightTint = ref(1)
-const endpointDarkTint = ref(1)
-const endpointSpread = ref(4)
-const endpointPreviewActive = ref(false)
-const endpointBase = ref<Record<Shade, OklchColor> | null>(null)
-const appliedEndpointState = ref<EndpointControlState | null>(null)
-let applyingEndpointPreview = false
 const availableReferences = computed(() => {
   const selected = new Set(overlayConfigs.value.map((overlay) => overlay.name))
   return referenceRanks.value.filter(({ family }) => !selected.has(family.name))
-})
-const endpointLightnessModel = computed({
-  get: () => [endpointLightness.value],
-  set: (value: number[]) => {
-    endpointLightness.value = value[0] ?? endpointLightness.value
-    previewEndpointChanges()
-  },
-})
-const endpointDarkLightnessModel = computed({
-  get: () => [endpointDarkLightness.value],
-  set: (value: number[]) => {
-    endpointDarkLightness.value = value[0] ?? endpointDarkLightness.value
-    previewEndpointChanges()
-  },
-})
-const endpointLightTintModel = computed({
-  get: () => [endpointLightTint.value],
-  set: (value: number[]) => {
-    endpointLightTint.value = value[0] ?? endpointLightTint.value
-    previewEndpointChanges()
-  },
-})
-const endpointDarkTintModel = computed({
-  get: () => [endpointDarkTint.value],
-  set: (value: number[]) => {
-    endpointDarkTint.value = value[0] ?? endpointDarkTint.value
-    previewEndpointChanges()
-  },
-})
-const endpointLightnessMinimum = computed(() =>
-  Math.min(1, (endpointBase.value?.[100].l ?? 0.85) + 0.001),
-)
-const endpointDarkLightnessMaximum = computed(() =>
-  Math.max(0, (endpointBase.value?.[900].l ?? 0.45) - 0.001),
-)
-const endpointBefore = computed(() => {
-  if (!endpointBase.value) return null
-  return {
-    light: endpointBase.value[50],
-    dark: endpointBase.value[950],
-  }
-})
-const endpointAfter = computed(() => {
-  if (!effectiveShades.value) return null
-  return {
-    light: effectiveShades.value[50],
-    dark: effectiveShades.value[950],
-  }
-})
-const endpointPresets = computed(() => {
-  const before = endpointBefore.value
-  if (!before) return []
-  return [
-    {
-      id: 'original' as const,
-      label: 'Original',
-      lightness: before.light.l,
-      darkLightness: before.dark.l,
-      lightTint: 1,
-      darkTint: 1,
-    },
-    {
-      id: 'neutral' as const,
-      label: 'Neutral',
-      lightness: before.light.l,
-      darkLightness: before.dark.l,
-      lightTint: 0,
-      darkTint: 0,
-    },
-    {
-      id: 'contrast' as const,
-      label: 'White + ink',
-      lightness: Math.max(before.light.l, 0.995),
-      darkLightness: Math.min(before.dark.l, 0.16),
-      lightTint: 0,
-      darkTint: 0,
-    },
-  ]
-})
-const activeEndpointPreset = computed<EndpointPreset | null>(() => {
-  const preset = endpointPresets.value.find(
-    (candidate) =>
-      close(candidate.lightness, endpointLightness.value) &&
-      close(candidate.darkLightness, endpointDarkLightness.value) &&
-      close(candidate.lightTint, endpointLightTint.value) &&
-      close(candidate.darkTint, endpointDarkTint.value),
-  )
-  return preset?.id ?? null
 })
 
 watch(
@@ -171,129 +78,6 @@ watch(
   },
   { immediate: true },
 )
-watch(
-  shades,
-  (palette) => {
-    if (!palette) return
-    if (applyingEndpointPreview) {
-      applyingEndpointPreview = false
-      return
-    }
-    beginEndpointSession(palette)
-  },
-  { immediate: true, flush: 'sync' },
-)
-
-function endpointOptions(): PaletteEndOptions {
-  return {
-    light: {
-      lightness: endpointLightness.value,
-      tintRetention: endpointLightTint.value,
-    },
-    dark: {
-      lightness: endpointDarkLightness.value,
-      tintRetention: endpointDarkTint.value,
-    },
-    spread: endpointSpread.value,
-  }
-}
-
-function previewEndpointChanges(): void {
-  if (!shades.value || !endpointBase.value) return
-  const target = adjustPaletteEnds(endpointBase.value, endpointOptions())
-  if (palettesMatch(target, shades.value)) {
-    if (endpointPreviewActive.value) clearPreview()
-    endpointPreviewActive.value = false
-    return
-  }
-
-  setPreview(target, `Adjusting scale ends across ${endpointSpread.value} shades`)
-  endpointPreviewActive.value = true
-}
-
-function beginEndpointSession(palette: Record<Shade, OklchColor>): void {
-  endpointBase.value = clonePalette(palette)
-  appliedEndpointState.value = {
-    lightness: palette[50].l,
-    darkLightness: palette[950].l,
-    lightTint: 1,
-    darkTint: 1,
-    spread: endpointSpread.value,
-  }
-  endpointPreviewActive.value = false
-  syncEndpointControls(appliedEndpointState.value)
-}
-
-function currentEndpointState(): EndpointControlState {
-  return {
-    lightness: endpointLightness.value,
-    darkLightness: endpointDarkLightness.value,
-    lightTint: endpointLightTint.value,
-    darkTint: endpointDarkTint.value,
-    spread: endpointSpread.value,
-  }
-}
-
-function syncEndpointControls(state: EndpointControlState | null): void {
-  if (!state) return
-  endpointLightness.value = state.lightness
-  endpointDarkLightness.value = state.darkLightness
-  endpointLightTint.value = state.lightTint
-  endpointDarkTint.value = state.darkTint
-  endpointSpread.value = state.spread
-}
-
-function applyEndpointPreset(preset: (typeof endpointPresets.value)[number]): void {
-  endpointLightness.value = preset.lightness
-  endpointDarkLightness.value = preset.darkLightness
-  endpointLightTint.value = preset.lightTint
-  endpointDarkTint.value = preset.darkTint
-  previewEndpointChanges()
-}
-
-function selectEndpointPreset(value: unknown): void {
-  const preset = endpointPresets.value.find((candidate) => candidate.id === value)
-  if (preset) applyEndpointPreset(preset)
-}
-
-function setEndpointSpread(value: number): void {
-  endpointSpread.value = value
-  previewEndpointChanges()
-}
-
-function selectEndpointSpread(value: unknown): void {
-  const spread = Number(value)
-  if (spread === 2 || spread === 3 || spread === 4) setEndpointSpread(spread)
-}
-
-function cancelEndpointPreview(): void {
-  clearPreview()
-  endpointPreviewActive.value = false
-  syncEndpointControls(appliedEndpointState.value)
-}
-
-function applyEndpointPreview(): void {
-  appliedEndpointState.value = currentEndpointState()
-  applyingEndpointPreview = true
-  endpointPreviewActive.value = false
-  applyPreview()
-}
-
-function close(first: number, second: number): boolean {
-  return Math.abs(first - second) < 1e-6
-}
-
-function palettesMatch(
-  first: Record<Shade, OklchColor>,
-  second: Record<Shade, OklchColor>,
-): boolean {
-  return SHADE_NAMES.every(
-    (shade) =>
-      close(first[shade].l, second[shade].l) &&
-      close(first[shade].c, second[shade].c) &&
-      close(first[shade].h, second[shade].h),
-  )
-}
 
 function addSelectedReference(): void {
   if (!addReferenceName.value) return
@@ -302,19 +86,85 @@ function addSelectedReference(): void {
 }
 
 function setOverlayLine(name: string, line: string | undefined): void {
-  if (!line || !OVERLAY_LINE_OPTIONS.some((option) => option.value === line)) return
-  updateOverlay(name, { line: line as OverlayLine })
+  if (line && isOverlayLine(line)) updateOverlay(name, { line })
 }
 
 function setOverlayMarker(name: string, marker: string | undefined): void {
-  if (!marker || !OVERLAY_MARKER_OPTIONS.includes(marker as OverlayMarker)) return
-  updateOverlay(name, { marker: marker as OverlayMarker })
+  if (marker && isOverlayMarker(marker)) updateOverlay(name, { marker })
+}
+
+function isOverlayLine(value: string): value is OverlayLine {
+  return OVERLAY_LINE_OPTIONS.some((option) => option.value === value)
+}
+
+function isOverlayMarker(value: string): value is OverlayMarker {
+  return OVERLAY_MARKER_OPTIONS.some((marker) => marker === value)
+}
+
+const shadeChannels = computed(() => CHANNEL_MODES[channelMode.value])
+const selectedColor = computed(() => shades.value?.[selectedShade.value] ?? null)
+const selectedDisplay = computed(() =>
+  displayShades.value.find((entry) => entry.shade === selectedShade.value),
+)
+const shadeDrafts = ref<Record<string, string>>({})
+const shadeErrors = ref<Record<string, string>>({})
+
+watch([selectedShade, channelMode, shades], () => resetShadeDrafts(), { immediate: true })
+
+function resetShadeDrafts(): void {
+  const color = selectedColor.value
+  if (!color) return
+  shadeDrafts.value = Object.fromEntries(
+    shadeChannels.value.map((channel) => [channel.key, numericDraft(channel, color)]),
+  )
+  shadeErrors.value = {}
+}
+
+function commitShadeChannel(channel: Channel): void {
+  const color = selectedColor.value
+  if (!color || !shades.value) return
+  const value = Number(shadeDrafts.value[channel.key])
+  if (!Number.isFinite(value) || value < channel.min || value > channel.max) {
+    shadeErrors.value = {
+      ...shadeErrors.value,
+      [channel.key]: `${channel.name} must be between ${channel.min} and ${channel.max}.`,
+    }
+    return
+  }
+
+  const nextColor = channel.set(color, value)
+  const nextPalette = { ...shades.value, [selectedShade.value]: nextColor }
+  commitPalette(nextPalette)
+  shadeErrors.value = { ...shadeErrors.value, [channel.key]: '' }
+  shadeDrafts.value = {
+    ...shadeDrafts.value,
+    [channel.key]: numericDraft(channel, nextColor),
+  }
+}
+
+function numericDraft(channel: Channel, color: OklchColor): string {
+  const decimals = Math.max(0, (String(channel.step).split('.')[1] ?? '').length)
+  return channel.get(color).toFixed(decimals)
+}
+
+function onShadeFieldKeydown(event: KeyboardEvent, channel: Channel): void {
+  if (event.key === 'Enter') {
+    event.preventDefault()
+    commitShadeChannel(channel)
+  } else if (event.key === 'Escape') {
+    event.preventDefault()
+    resetShadeDrafts()
+  }
+}
+
+function channelUnit(channel: Channel): string {
+  return channel.key === 'h' ? 'degrees' : channel.key === 'c' ? 'OKLCH chroma' : '0 to 1'
 }
 </script>
 
 <template>
   <Card class="inspector" aria-label="Palette inspector">
-    <Tabs v-model="tab" class="min-h-0 flex-1 gap-0">
+    <Tabs v-model="inspectorTab" class="min-h-0 flex-1 gap-0">
       <TabsList
         variant="line"
         class="grid h-12 w-full grid-cols-3 rounded-none border-b bg-transparent px-3"
@@ -628,32 +478,68 @@ function setOverlayMarker(name: string, marker: string | undefined): void {
         </section>
       </TabsContent>
 
-      <TabsContent value="history" class="inspector-body">
+      <TabsContent value="shade" class="inspector-body shade-panel">
         <header>
-          <h2 class="cn-font-heading">Edit history</h2>
-          <p>Select any step to restore it. You can still undo or redo.</p>
+          <h2 class="cn-font-heading">Shade {{ selectedShade }}</h2>
+          <p>Edit the selected shade exactly. Changes remain in canonical OKLCH.</p>
         </header>
-        <div class="actions">
-          <Button type="button" variant="outline" size="sm" :disabled="!canUndo" @click="undo"
-            >Undo</Button
-          ><Button type="button" variant="outline" size="sm" :disabled="!canRedo" @click="redo"
-            >Redo</Button
+
+        <div v-if="selectedColor" class="shade-summary">
+          <span
+            class="shade-swatch"
+            :style="{ background: selectedDisplay?.css ?? formatOklch(selectedColor) }"
+            aria-hidden="true"
+          />
+          <div>
+            <strong>{{ selectedDisplay?.hex ?? formatHex(selectedColor) }}</strong>
+            <code>{{ formatOklch(selectedColor) }}</code>
+          </div>
+        </div>
+
+        <div class="shade-fields">
+          <label v-for="channel in shadeChannels" :key="channel.key">
+            <span>
+              {{ channel.name }}
+              <small
+                >{{ channelUnit(channel) }} ·
+                {{ channel.format(channel.get(selectedColor!)) }}</small
+              >
+            </span>
+            <Input
+              v-model="shadeDrafts[channel.key]"
+              type="number"
+              inputmode="decimal"
+              :min="channel.min"
+              :max="channel.max"
+              :step="channel.step"
+              :aria-invalid="Boolean(shadeErrors[channel.key])"
+              :aria-describedby="
+                shadeErrors[channel.key] ? `shade-${channel.key}-error` : undefined
+              "
+              @change="commitShadeChannel(channel)"
+              @keydown="onShadeFieldKeydown($event, channel)"
+            />
+            <span
+              v-if="shadeErrors[channel.key]"
+              :id="`shade-${channel.key}-error`"
+              class="field-error"
+              >{{ shadeErrors[channel.key] }}</span
+            >
+          </label>
+        </div>
+
+        <div class="shade-picker" aria-label="Select shade">
+          <Button
+            v-for="shade in SHADE_NAMES"
+            :key="shade"
+            type="button"
+            size="xs"
+            :variant="shade === selectedShade ? 'default' : 'outline'"
+            :aria-pressed="shade === selectedShade"
+            @click="selectedShade = shade"
+            >{{ shade }}</Button
           >
         </div>
-        <ol class="history-list">
-          <li v-for="(entry, index) in history" :key="`${index}-${entry.label}`">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              :class="{ current: index === historyIndex }"
-              :aria-current="index === historyIndex ? 'step' : undefined"
-              @click="restoreHistory(index)"
-              ><span>{{ String(index + 1).padStart(2, '0') }}</span
-              >{{ entry.label }}</Button
-            >
-          </li>
-        </ol>
       </TabsContent>
     </Tabs>
 
@@ -716,7 +602,7 @@ function setOverlayMarker(name: string, marker: string | undefined): void {
   overflow: hidden;
   width: 30px;
   height: 10px;
-  border: 1px solid rgb(127 127 127 / 22%);
+  border: 1px solid var(--border);
   border-radius: 999px;
 }
 .preset-swatches span {
@@ -772,7 +658,7 @@ function setOverlayMarker(name: string, marker: string | undefined): void {
   width: 58px;
   height: 32px;
   flex: 0 0 auto;
-  border: 1px solid rgb(127 127 127 / 20%);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-xs);
 }
@@ -927,33 +813,56 @@ input[type='color']::-moz-color-swatch {
   fill: var(--card);
   stroke-width: 1.5;
 }
-.history-list {
+.shade-summary {
   display: flex;
-  flex-direction: column-reverse;
-  gap: 0;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.history-list :deep(button) {
-  width: 100%;
-  justify-content: flex-start;
-  min-height: 40px;
-  border: 0;
-  border-bottom: 1px solid var(--border);
-  border-radius: 0;
-  background: transparent;
-  text-align: left;
-}
-.history-list :deep(button span) {
-  display: inline-block;
-  width: 28px;
-  color: var(--muted-foreground);
-  font-family: ui-monospace, monospace;
-}
-.history-list :deep(button.current) {
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   background: var(--muted);
-  color: var(--foreground);
+}
+.shade-swatch {
+  width: 54px;
+  height: 54px;
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.shade-summary div {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+.shade-summary code {
+  overflow-wrap: anywhere;
+  color: var(--muted-foreground);
+  font-size: 11px;
+}
+.shade-fields {
+  display: grid;
+  gap: 14px;
+}
+.shade-fields label > span:first-child {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.shade-fields small {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 400;
+}
+.field-error {
+  color: var(--destructive);
+  font-size: 12px;
+  font-weight: 450;
+}
+.shade-picker {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
 }
 @media (min-width: 1792px) {
   .inspector {

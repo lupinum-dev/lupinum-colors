@@ -8,7 +8,6 @@ import {
   UsersIcon,
 } from '@lucide/vue'
 import { computed, ref, type CSSProperties } from 'vue'
-import type { DisplayShade } from '@/app/palette-store'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -19,6 +18,7 @@ import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Slider } from '@/components/ui/slider'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import type { DisplayShade } from '@/types'
 
 type PreviewScenario = 'workspace' | 'components'
 type PreviewAppearance = 'auto' | 'light' | 'dark'

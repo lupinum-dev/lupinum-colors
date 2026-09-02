@@ -13,12 +13,13 @@ import {
   endContinuousEdit,
   generatedShades,
   previewShades,
+  selectShade,
   setShadeColor,
   shades,
   visibleChannels,
   type ActiveOverlay,
 } from '@/app/palette-store'
-import { SHADE_NAMES, type OklchColor, type Shade } from '@/types'
+import { SHADE_NAMES, type OklchColor, type ReadonlyPalette, type Shade } from '@/types'
 
 const PAD_TOP = 28
 const PAD_BOTTOM = 20
@@ -69,7 +70,7 @@ interface OverlayCurve extends Curve {
   overlay: ActiveOverlay
 }
 
-function buildCurves(colors: Record<Shade, OklchColor>): Curve[] {
+function buildCurves(colors: ReadonlyPalette): Curve[] {
   return visibleChannels.value.map((channel) => {
     const points = SHADE_NAMES.map((shade, index) => {
       const value = channel.get(colors[shade])
@@ -141,6 +142,12 @@ function channelColor(key: string): string {
   return '#69d7ff'
 }
 
+function channelCue(key: string): { marker: 'circle' | 'square' | 'diamond'; dash: string } {
+  if (key === 'c' || key === 's') return { marker: 'square', dash: '8 5' }
+  if (key === 'h') return { marker: 'diamond', dash: '2 5' }
+  return { marker: 'circle', dash: '' }
+}
+
 function labelY(curve: Curve): number {
   return Math.min(Math.max(curve.points[0].y + 4, 16), size.value.height - PAD_BOTTOM - 8)
 }
@@ -155,6 +162,7 @@ const drag = ref<PointDrag | null>(null)
 
 function onPointPointerDown(event: PointerEvent, channel: Channel, shade: Shade): void {
   if (!shades.value) return
+  selectShade(shade)
   beginContinuousEdit()
   drag.value = { channel, shade, startColor: { ...shades.value[shade] } }
   ;(event.currentTarget as Element).setPointerCapture(event.pointerId)
@@ -171,7 +179,7 @@ function onPointerMove(event: PointerEvent): void {
 function onPointerUp(): void {
   const active = drag.value
   if (active) {
-    endContinuousEdit(`Adjusted ${active.channel.label} at ${active.shade}`)
+    endContinuousEdit()
   }
   drag.value = null
 }
@@ -188,7 +196,7 @@ function onHandleKeydown(event: KeyboardEvent, channel: Channel, point: CurvePoi
   const delta = channel.step * (event.shiftKey ? 10 : 1) * direction
   beginContinuousEdit()
   setShadeColor(point.shade, channel.set(effectiveShades.value[point.shade], point.value + delta))
-  endContinuousEdit(`Adjusted ${channel.label} at ${point.shade}`)
+  endContinuousEdit()
 }
 
 function onEditorKeydown(event: KeyboardEvent): void {
@@ -224,7 +232,7 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
           <TriangleAlertIcon />
         </span>
         <span class="strip-shade">{{ entry.shade }}</span>
-        <span class="strip-hex">{{ entry.hex }}</span>
+        <span class="strip-hex" :title="entry.css">{{ entry.hex ?? '—' }}</span>
       </div>
     </div>
 
@@ -277,31 +285,67 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
         <path :d="curve.path" />
       </g>
 
-      <g v-for="curve in curves" :key="curve.channel.key">
-        <text class="curve-label" :x="curve.points[0].x - 18" :y="labelY(curve)">
+      <g v-for="(curve, curveIndex) in curves" :key="curve.channel.key">
+        <text class="curve-label" :x="curve.points[0].x - 18 + curveIndex * 13" :y="labelY(curve)">
           {{ curve.channel.label }}
         </text>
         <path class="halo" :d="curve.path" />
-        <path class="line" :d="curve.path" :style="{ stroke: channelColor(curve.channel.key) }" />
-        <circle
+        <path
+          class="line"
+          :d="curve.path"
+          :stroke-dasharray="channelCue(curve.channel.key).dash"
+          :style="{ stroke: channelColor(curve.channel.key) }"
+        />
+        <g
           v-for="point in curve.points"
           :key="point.shade"
-          class="handle"
-          :cx="point.x"
-          :cy="point.y"
-          r="7"
-          role="slider"
-          tabindex="0"
-          :aria-label="`${curve.channel.label}, shade ${point.shade}`"
-          :aria-valuemin="curve.channel.min"
-          :aria-valuemax="curve.channel.max"
-          :aria-valuenow="Number(point.value.toFixed(4))"
-          @keydown="onHandleKeydown($event, curve.channel, point)"
-          @pointerdown="onPointPointerDown($event, curve.channel, point.shade)"
-          @pointermove="onPointerMove"
-          @pointerup="onPointerUp"
-          @pointercancel="onPointerUp"
-        />
+          class="handle-group"
+          :data-marker="channelCue(curve.channel.key).marker"
+        >
+          <circle
+            v-if="channelCue(curve.channel.key).marker === 'circle'"
+            class="handle-marker"
+            :cx="point.x"
+            :cy="point.y"
+            r="6"
+          />
+          <rect
+            v-else-if="channelCue(curve.channel.key).marker === 'square'"
+            class="handle-marker"
+            :x="point.x - 5.5"
+            :y="point.y - 5.5"
+            width="11"
+            height="11"
+          />
+          <rect
+            v-else
+            class="handle-marker"
+            :x="point.x - 5"
+            :y="point.y - 5"
+            width="10"
+            height="10"
+            :transform="`rotate(45 ${point.x} ${point.y})`"
+          />
+          <circle
+            class="handle-hit"
+            :cx="point.x"
+            :cy="point.y"
+            r="12"
+            role="slider"
+            tabindex="0"
+            :aria-label="`${curve.channel.name}, shade ${point.shade}`"
+            :aria-valuemin="curve.channel.min"
+            :aria-valuemax="curve.channel.max"
+            :aria-valuenow="Number(point.value.toFixed(4))"
+            :aria-valuetext="curve.channel.format(point.value)"
+            @focus="selectShade(point.shade)"
+            @keydown="onHandleKeydown($event, curve.channel, point)"
+            @pointerdown="onPointPointerDown($event, curve.channel, point.shade)"
+            @pointermove="onPointerMove"
+            @pointerup="onPointerUp"
+            @pointercancel="onPointerUp"
+          />
+        </g>
       </g>
     </svg>
   </div>
@@ -420,16 +464,21 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
   stroke: rgb(8 9 12 / 85%);
   stroke-width: 3px;
 }
-.handle {
+.handle-marker {
   fill: #f4f4f6;
   stroke: #111217;
   stroke-width: 2;
+  pointer-events: none;
+}
+.handle-hit {
+  fill: transparent;
+  stroke: transparent;
   cursor: grab;
   pointer-events: auto;
 }
-.handle:focus-visible {
+.handle-group:focus-within .handle-marker {
   outline: none;
-  stroke: #87a4ff;
+  stroke: var(--ring);
   stroke-width: 4;
 }
 @media (prefers-reduced-motion: no-preference) {
@@ -441,14 +490,14 @@ function textColor(entry: { contrastOnWhite: number; contrastOnBlack: number }):
   .line,
   .halo,
   .preview-base path,
-  .handle {
+  .handle-marker {
     transition-property: d, cx, cy;
     transition-duration: 140ms;
     transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
   }
   .editor.dragging .line,
   .editor.dragging .halo,
-  .editor.dragging .handle {
+  .editor.dragging .handle-marker {
     transition-duration: 0ms;
   }
 }

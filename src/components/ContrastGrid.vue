@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { ArrowLeftRightIcon, CheckIcon, XIcon } from '@lucide/vue'
 import { computed, nextTick, ref } from 'vue'
-import type { DisplayShade } from '@/app/palette-store'
 import { contrastRatio } from '@/color'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import type { OklchColor, Shade } from '@/types'
+import type { DisplayShade, OklchColor, Shade } from '@/types'
 
 type ContrastStandard = 'all' | 'ui' | 'aa' | 'aaa'
 type MatrixColorId = 'white' | Shade | 'black'
