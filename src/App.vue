@@ -184,11 +184,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
             Lupinum Colors
           </span>
         </a>
-        <div class="mr-auto hidden items-center gap-2 sm:flex">
-          <Badge variant="outline" class="hidden font-mono lg:inline-flex">
-            Tailwind v4 · OKLCH
-          </Badge>
-        </div>
         <div class="flex items-center gap-1">
           <Button
             variant="ghost"
@@ -243,7 +238,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
     <div class="app-shell py-4 sm:py-5">
       <section class="tool-intro" aria-labelledby="tool-title">
         <div>
-          <h1 id="tool-title" class="text-balance text-xl font-semibold tracking-[-0.02em]">
+          <h1 id="tool-title" class="text-balance text-2xl font-semibold tracking-[-0.025em]">
             Tailwind shade generator
           </h1>
           <p class="mt-1 max-w-3xl text-pretty text-sm leading-5 text-muted-foreground">
@@ -262,7 +257,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
 
       <div class="workstation">
         <Card size="sm" class="source-panel">
-          <CardHeader class="border-b">
+          <CardHeader>
             <div>
               <CardTitle>Palette setup</CardTitle>
               <CardDescription class="text-pretty">
@@ -335,7 +330,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
                   <NativeSelectOption value="canonical">Match Tailwind curve</NativeSelectOption>
                 </NativeSelect>
                 <p id="seed-mode-hint" class="field-hint">
-                  Keep your color unchanged, or use it as a guide for a smoother Tailwind scale.
+                  Preserve the seed or fit it to the Tailwind reference curve.
                 </p>
               </div>
               <div class="grid gap-2">
@@ -354,7 +349,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
                   }}</NativeSelectOption>
                 </NativeSelect>
                 <p id="anchor-hint" class="field-hint">
-                  Choose where the starting color sits in the 50–950 scale.
+                  Place the seed within the 50–950 scale.
                 </p>
               </div>
               <div class="grid gap-2">
@@ -375,7 +370,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
                   >
                 </NativeSelect>
                 <p id="hue-path-hint" class="field-hint">
-                  Control how the hue changes from light shades to dark shades.
+                  Choose the hue path between the scale ends.
                 </p>
               </div>
               <div class="grid gap-2">
@@ -393,7 +388,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
                   <NativeSelectOption value="none">No limit</NativeSelectOption>
                 </NativeSelect>
                 <p id="gamut-hint" class="field-hint">
-                  Limit colors to the screens your product supports.
+                  Constrain output to the target display.
                 </p>
               </div>
             </div>
@@ -436,9 +431,11 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
 
         <div class="workbench-canvas min-w-0">
           <div class="overflow-x-auto rounded-xl">
-            <div class="min-w-[720px]">
+            <div
+              class="min-w-[720px] overflow-hidden rounded-xl bg-card shadow-[var(--surface-shadow)]"
+            >
               <section
-                class="flex flex-wrap items-center gap-2 rounded-t-xl border border-b-0 bg-card px-3 py-2"
+                class="flex flex-wrap items-center gap-2 border-b px-3 py-2"
                 aria-label="Editor view"
               >
                 <div class="mr-auto hidden min-w-0 sm:block">
@@ -495,7 +492,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
                   Show generated curve
                 </label>
               </section>
-              <PaletteEditor />
+              <PaletteEditor class="rounded-none! border-0!" />
             </div>
           </div>
           <p class="mt-2 flex items-center gap-2 px-1 text-xs text-muted-foreground">
@@ -561,6 +558,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
 }
 .source-panel {
   grid-area: source;
+  min-width: 0;
 }
 .workbench-canvas {
   grid-area: canvas;
@@ -575,7 +573,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
   gap: 12px;
 }
 .source-options {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
 }
 .source-alert {
   margin-top: 4px;
@@ -615,6 +613,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
   }
   .source-identity {
     grid-template-columns: 120px minmax(240px, 1fr);
+  }
+  .source-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 @media (min-width: 1280px) {

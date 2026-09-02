@@ -1,5 +1,37 @@
 <script setup lang="ts">
+import { ChevronDownIcon } from '@lucide/vue'
+import {
+  AccordionContent,
+  AccordionHeader,
+  AccordionItem,
+  AccordionRoot,
+  AccordionTrigger,
+} from 'reka-ui'
+
 defineProps<{ tailwindVersion?: string }>()
+
+const faqs = [
+  {
+    question: 'Does Lupinum Colors support Tailwind CSS v4?',
+    answer:
+      'Yes. The Tailwind export produces an @theme block with color variables for shades 50 through 950. CSS and JSON exports are available for other workflows.',
+  },
+  {
+    question: 'Why generate Tailwind shades with OKLCH?',
+    answer:
+      'OKLCH separates perceived lightness, color intensity, and hue. That makes the progression between shades easier to inspect and tune than a list of unrelated HEX values.',
+  },
+  {
+    question: 'Does the tool upload my colors?',
+    answer:
+      'No. Palette generation, editing, contrast checks, and exports run in your browser. There is no account and your palette values are not sent to Lupinum. Share links store the palette after the # in the URL, which browsers do not send to the server.',
+  },
+  {
+    question: 'Is this an official Tailwind CSS product?',
+    answer:
+      'No. Lupinum Colors is an independent tool by Lupinum and is not affiliated with or endorsed by Tailwind Labs.',
+  },
+] as const
 </script>
 
 <template>
@@ -72,38 +104,26 @@ defineProps<{ tailwindVersion?: string }>()
       <h2 id="faq-title" class="text-lg font-semibold tracking-[-0.015em]">
         Tailwind color generator questions
       </h2>
-      <div class="faq-list">
-        <details>
-          <summary>Does Lupinum Colors support Tailwind CSS v4?</summary>
-          <p>
-            Yes. The Tailwind export produces an <code>@theme</code> block with color variables for
-            shades 50 through 950. CSS and JSON exports are available for other workflows.
-          </p>
-        </details>
-        <details>
-          <summary>Why generate Tailwind shades with OKLCH?</summary>
-          <p>
-            OKLCH separates perceived lightness, color intensity, and hue. That makes the
-            progression between shades easier to inspect and tune than a list of unrelated HEX
-            values.
-          </p>
-        </details>
-        <details>
-          <summary>Does the tool upload my colors?</summary>
-          <p>
-            No. Palette generation, editing, contrast checks, and exports run in your browser. There
-            is no account and your palette values are not sent to Lupinum. Share links store the
-            palette after the <code>#</code> in the URL, which browsers do not send to the server.
-          </p>
-        </details>
-        <details>
-          <summary>Is this an official Tailwind CSS product?</summary>
-          <p>
-            No. Lupinum Colors is an independent tool by Lupinum and is not affiliated with or
-            endorsed by Tailwind Labs.
-          </p>
-        </details>
-      </div>
+      <AccordionRoot type="single" collapsible class="faq-list">
+        <AccordionItem
+          v-for="faq in faqs"
+          :key="faq.question"
+          :value="faq.question"
+          class="faq-item"
+        >
+          <AccordionHeader>
+            <AccordionTrigger data-slot="accordion-trigger" class="faq-trigger group">
+              <span>{{ faq.question }}</span>
+              <ChevronDownIcon class="faq-chevron" aria-hidden="true" />
+            </AccordionTrigger>
+          </AccordionHeader>
+          <AccordionContent force-mount class="faq-content">
+            <div>
+              <p>{{ faq.answer }}</p>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </AccordionRoot>
     </div>
 
     <aside class="lupinum-note" aria-labelledby="lupinum-note-title">
@@ -165,7 +185,7 @@ defineProps<{ tailwindVersion?: string }>()
   border-top: 1px solid var(--border);
 }
 .guide-steps h3,
-.faq summary {
+.faq-trigger {
   font-size: 14px;
   font-weight: 500;
 }
@@ -221,14 +241,57 @@ defineProps<{ tailwindVersion?: string }>()
   margin-top: 16px;
   border-top: 1px solid var(--border);
 }
-.faq details {
+.faq-item {
   border-bottom: 1px solid var(--border);
 }
-.faq summary {
-  cursor: pointer;
-  padding: 16px 32px 16px 0;
+.faq-trigger {
+  display: flex;
+  width: 100%;
+  min-height: 52px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  text-align: start;
+  transition: color 150ms ease;
 }
-.faq summary:focus-visible,
+.faq-trigger:hover {
+  color: var(--muted-foreground);
+}
+.faq-chevron {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  color: var(--muted-foreground);
+  transition: transform 200ms cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+.faq-trigger[data-state='open'] .faq-chevron {
+  transform: rotate(180deg);
+}
+.faq-content {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    grid-template-rows 180ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    opacity 140ms ease,
+    visibility 0s linear 180ms;
+}
+.faq-content[data-state='open'] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  transition:
+    grid-template-rows 240ms cubic-bezier(0.19, 1, 0.22, 1),
+    opacity 160ms ease,
+    visibility 0s linear;
+}
+.faq-content > div {
+  min-height: 0;
+  overflow: hidden;
+}
+.faq-trigger:focus-visible,
 .method-links a:focus-visible,
 .product-footer a:focus-visible,
 .lupinum-link:focus-visible {
@@ -236,7 +299,8 @@ defineProps<{ tailwindVersion?: string }>()
   outline: 2px solid var(--ring);
   outline-offset: 4px;
 }
-.faq details p {
+.faq-content p {
+  margin-top: 0;
   padding: 0 0 18px;
 }
 .lupinum-note {

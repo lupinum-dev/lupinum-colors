@@ -1,5 +1,15 @@
 # Working on Lupinum Colors
 
+Read this file before changing the repository. `README.md` explains the
+product, `CONTRIBUTING.md` explains contributor expectations, and
+`MAINTAINING.md` owns operational procedures.
+
+## Product boundary
+
+Lupinum Colors is a static, browser-based palette generator that places an
+input color within the color principles inferred from Tailwind CSS. It does
+not publish an npm package and has no production backend.
+
 ## Architecture
 
 - `src/palette.ts`, `src/color.ts`, and `src/types.ts` own framework-neutral
@@ -9,16 +19,49 @@
 - `reference/` contains generated Tailwind color calibration data.
 - `scripts/build-reference.ts` is the only path that regenerates that data.
 - `public/` owns deployed static assets and discovery files.
-- `test/` verifies generator, state, accessibility, SSR, metadata, and CLI
-  invariants.
+- `test/` verifies generator behavior, state, accessibility, SSR, metadata,
+  and CLI contracts.
 
-This repository deploys one static application. It does not publish an npm
-package and has no production backend.
+Keep palette logic independent of Vue and browser APIs. Keep each important
+concept in one source of truth. Prefer deletion, then simplification, then
+replacement, and only then addition.
+
+## Public contracts and invariants
+
+- Canonical palette state uses OKLCH. HSL and HSV are derived views.
+- The generated baseline and current committed palette are separate values.
+- Shared palettes use the validated `SharedPaletteV1` URL-fragment contract.
+  Do not include theme, temporary previews, undo history, or other cosmetic
+  state in the payload.
+- Browsers do not send URL fragments to the server. Do not describe shared
+  links as remote storage.
+- The build must verify the committed Tailwind reference version and digest.
+- Preserve exact numeric fields, keyboard editing, Tailwind attribution, and
+  the independence disclaimer.
+- Keep the deployment static. Do not add accounts, a backend, remote palette
+  storage, or npm publication without an explicit product decision.
+- Keep the Workbench focused on editing. Put explanatory content in the
+  in-app Guide and keep it available in prerendered HTML.
+
+## Working method
+
+1. Read the relevant source, tests, and current `git status` before editing.
+2. Preserve unrelated user changes. Do not rewrite or discard them.
+3. Make the smallest direct change that solves the stated problem.
+4. Add focused tests when behavior, accessibility, or a public contract
+   changes.
+5. Update public documentation when supported behavior changes.
+6. Use Conventional Commits for commit and pull-request titles.
+
+Do not commit credentials, customer data, private palette data, local plans,
+agent transcripts, generated scratch files, or temporary migration notes.
+Track a migration only while real compatibility work remains.
 
 ## Commands
 
 ```sh
 pnpm install --frozen-lockfile
+pnpm dev
 pnpm verify
 pnpm docs:build
 pnpm audit:all
@@ -28,47 +71,17 @@ pnpm release:verify
 Run `pnpm verify` before handoff. Run `pnpm release:verify` before a production
 deployment or open-source launch review.
 
-## Invariants
+## Prohibited actions
 
-- Canonical palette state uses OKLCH. HSL and HSV are derived views.
-- The generated baseline and current committed palette are separate values.
-- Shared palette state uses the validated `SharedPaletteV1` URL-fragment
-  contract. Do not put theme, temporary previews, undo history, or other
-  cosmetics into the shared payload.
-- URL fragments must not be described as server-side storage. Browsers do not
-  send fragments in HTTP requests.
-- The build must verify the committed Tailwind reference version and digest.
-- Keep palette editing available through exact numeric fields and keyboard
-  input, not pointer input alone.
-- Preserve a static deployment. Do not add a backend, account system, or remote
-  palette storage without an explicit product decision.
-- Do not add npm publication workflows, package release files, or `NPM_TOKEN`.
-- Do not bypass the 24-hour dependency quarantine. A temporary exception must
-  name one exact version, reason, owner, and removal date.
-- Keep public text in Lupinum Controlled English as defined in
-  `docs/WRITING.md`.
-- Preserve Tailwind attribution and the independence disclaimer.
+- Do not regenerate `reference/` through any path except
+  `scripts/build-reference.ts`.
+- Do not bypass the dependency release-age policy for convenience.
+- Do not add `NPM_TOKEN`, package-release workflows, or a second package
+  manager.
+- Do not push, deploy, publish, transfer the repository, change DNS, or mutate
+  external services unless the user explicitly authorizes that action.
+- Do not weaken tests, accessibility, attribution, reference verification, or
+  public contracts to make a check pass.
 
-## Deployment
-
-Vercel deploys the repository root. Pull requests use previews. Current `main`
-deploys production. Follow `MAINTAINING.md` for verification and rollback.
-
----
-
-<!--VITE PLUS START-->
-
-# Using Vite+, the Unified Toolchain for the Web
-
-This project is using Vite+, a unified toolchain built on top of Vite, Rolldown, Vitest, tsdown, Oxlint, Oxfmt, and Vite Task. Vite+ wraps runtime management, package management, and frontend tooling in a single global CLI called `vp`. Vite+ is distinct from Vite, and it invokes Vite through `vp dev` and `vp build`. Run `vp help` to print a list of commands and `vp <command> --help` for information about a specific command.
-
-Docs are local at `node_modules/vite-plus/docs` or online at https://viteplus.dev/guide/.
-
-## Review Checklist
-
-- [ ] Run `vp install` after pulling remote changes and before getting started.
-- [ ] Run `vp check` and `vp test` to format, lint, type check and test changes.
-- [ ] Check if there are `vite.config.ts` tasks or `package.json` scripts necessary for validation, run via `vp run <script>`.
-- [ ] If setup, runtime, or package-manager behavior looks wrong, run `vp env doctor` and include its output when asking for help.
-
-<!--VITE PLUS END-->
+Follow `MAINTAINING.md` for deployment, rollback, dependency updates, and
+incident response.
