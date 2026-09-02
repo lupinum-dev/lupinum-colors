@@ -1,16 +1,25 @@
 <script setup lang="ts">
 import type { SliderRootEmits, SliderRootProps } from 'reka-ui'
 import type { HTMLAttributes } from 'vue'
+import { useAttrs } from 'vue'
 import { reactiveOmit } from '@vueuse/core'
 import { SliderRange, SliderRoot, SliderThumb, SliderTrack, useForwardPropsEmits } from 'reka-ui'
 import { cn } from '@/lib/utils'
 
 const props = defineProps<SliderRootProps & { class?: HTMLAttributes['class'] }>()
 const emits = defineEmits<SliderRootEmits>()
+const attrs = useAttrs()
 
 const delegatedProps = reactiveOmit(props, 'class')
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits)
+
+function thumbLabel(index: number, count: number): string | undefined {
+  const label = attrs['aria-label']
+  if (typeof label !== 'string') return undefined
+  if (count === 1) return label
+  return `${label}, ${index === 0 ? 'minimum' : index === count - 1 ? 'maximum' : index + 1}`
+}
 </script>
 
 <template>
@@ -44,6 +53,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
       v-for="(_, key) in modelValue"
       :key="key"
       data-slot="slider-thumb"
+      :aria-label="thumbLabel(Number(key), modelValue?.length ?? 0)"
       :data-vertical="props.orientation === 'vertical' ? '' : undefined"
       class="border-primary ring-ring relative size-4 rounded-full border bg-white shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden after:absolute after:-inset-3.5 block shrink-0 select-none disabled:pointer-events-none disabled:opacity-50"
     />

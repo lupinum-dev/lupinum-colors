@@ -17,6 +17,22 @@ import {
 import PaletteInspector from '../src/components/PaletteInspector.vue'
 
 describe('palette endpoint controls', () => {
+  it('names every keyboard-focusable endpoint slider', () => {
+    generate()
+    const wrapper = mount(PaletteInspector)
+    const labels = wrapper
+      .findAll('[role="slider"]')
+      .map((slider) => slider.attributes('aria-label'))
+
+    expect(labels).toEqual([
+      'Light endpoint lightness',
+      'Light endpoint color tint',
+      'Dark endpoint lightness',
+      'Dark endpoint color tint',
+    ])
+    wrapper.unmount()
+  })
+
   it('previews and applies neutral endpoints without changing the anchor', async () => {
     seedColor.value = '#d9e900'
     generate()

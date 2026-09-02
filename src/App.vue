@@ -107,7 +107,8 @@ async function generateFromForm(): Promise<void> {
 function moveToSection(id: 'main-content' | 'how-it-works'): void {
   const section = document.getElementById(id)
   if (!section) return
-  section.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
+  section.scrollIntoView({ behavior, block: 'start' })
   if (id === 'main-content') section.focus({ preventScroll: true })
   else document.getElementById('guide-title')?.focus({ preventScroll: true })
 }
@@ -192,9 +193,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
             :title="`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`"
             @click="toggleTheme"
           >
-            <span class="relative size-4" aria-hidden="true">
+            <span class="theme-icon relative size-4" aria-hidden="true">
               <SunIcon
-                class="absolute inset-0 transition-[opacity,scale,filter] duration-150"
+                class="absolute inset-0 transition-[opacity,scale,filter] duration-150 motion-reduce:transition-[opacity]"
                 :class="
                   theme === 'light'
                     ? 'scale-100 opacity-100 blur-0'
@@ -202,7 +203,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
                 "
               />
               <MoonIcon
-                class="absolute inset-0 transition-[opacity,scale,filter] duration-150"
+                class="absolute inset-0 transition-[opacity,scale,filter] duration-150 motion-reduce:transition-[opacity]"
                 :class="
                   theme === 'dark'
                     ? 'scale-100 opacity-100 blur-0'
@@ -348,9 +349,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
                     shade
                   }}</NativeSelectOption>
                 </NativeSelect>
-                <p id="anchor-hint" class="field-hint">
-                  Place the seed within the 50–950 scale.
-                </p>
+                <p id="anchor-hint" class="field-hint">Place the seed within the 50–950 scale.</p>
               </div>
               <div class="grid gap-2">
                 <Label for="hue-path">Hue direction</Label>
@@ -387,9 +386,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
                   <NativeSelectOption value="display-p3">Display P3</NativeSelectOption>
                   <NativeSelectOption value="none">No limit</NativeSelectOption>
                 </NativeSelect>
-                <p id="gamut-hint" class="field-hint">
-                  Constrain output to the target display.
-                </p>
+                <p id="gamut-hint" class="field-hint">Constrain output to the target display.</p>
               </div>
             </div>
             <Button class="generate h-9 w-full" @click="generateFromForm">
@@ -435,7 +432,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
               class="min-w-[720px] overflow-hidden rounded-xl bg-card shadow-[var(--surface-shadow)]"
             >
               <section
-                class="flex flex-wrap items-center gap-2 border-b px-3 py-2"
+                class="flex flex-wrap items-center gap-2 px-3 pb-2 pt-3"
                 aria-label="Editor view"
               >
                 <div class="mr-auto hidden min-w-0 sm:block">
@@ -492,7 +489,11 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
                   Show generated curve
                 </label>
               </section>
-              <PaletteEditor class="rounded-none! border-0!" />
+              <div class="px-3 pb-3">
+                <PaletteEditor
+                  class="rounded-lg! border! border-foreground/20! dark:border-foreground/30!"
+                />
+              </div>
             </div>
           </div>
           <p class="mt-2 flex items-center gap-2 px-1 text-xs text-muted-foreground">
@@ -533,7 +534,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onHistoryShortcut))
   margin-inline: auto;
 }
 .app-toolbar {
-  background: color-mix(in oklch, var(--background) 88%, transparent);
+  background: color-mix(in oklch, var(--card) 92%, transparent);
   backdrop-filter: blur(18px) saturate(140%);
 }
 .workstation {
