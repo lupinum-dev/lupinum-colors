@@ -472,9 +472,6 @@ function channelUnit(channel: Channel): string {
             </ToggleGroup>
           </div>
 
-          <p class="endpoint-note">
-            Changes blend smoothly into nearby shades. Middle shades stay unchanged.
-          </p>
         </section>
       </TabsContent>
 
@@ -609,15 +606,12 @@ function channelUnit(channel: Channel): string {
   flex: 1;
 }
 .endpoint-controls {
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: color-mix(in oklch, var(--muted) 42%, transparent);
+  border-block: 1px solid var(--border);
 }
 .endpoint-card {
   display: grid;
   gap: 16px;
-  padding: 16px;
+  padding: 16px 0;
 }
 .endpoint-card + .endpoint-card {
   border-top: 1px solid var(--border);
@@ -695,19 +689,6 @@ function channelUnit(channel: Channel): string {
 }
 .spread-options {
   display: flex;
-}
-.endpoint-note {
-  margin: 0;
-  padding: 9px 10px;
-  border-radius: var(--radius-md);
-  background: var(--muted);
-  color: var(--muted-foreground);
-  font-size: 12px;
-  line-height: 1.5;
-  text-wrap: pretty;
-}
-.endpoint-note strong {
-  color: var(--foreground);
 }
 header h2 {
   margin: 0;
@@ -818,9 +799,8 @@ input[type='color']::-moz-color-swatch {
   align-items: center;
   gap: 12px;
   padding: 12px;
-  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  background: var(--muted);
+  background: color-mix(in oklch, var(--muted) 68%, transparent);
 }
 .shade-swatch {
   width: 54px;
