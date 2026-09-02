@@ -21,4 +21,14 @@ describe('Lupinum Colors product guide', () => {
     expect(contactLink.attributes('href')).toContain('utm_campaign=lupinum-colors')
     expect(contactLink.text()).toBe('Discuss a project with Lupinum')
   })
+
+  it('links to the public source, license, and community', () => {
+    const wrapper = mount(ProductGuide)
+
+    expect(wrapper.get('a[href="https://github.com/lupinum-dev/lupinum-colors"]').text()).toBe(
+      'Source',
+    )
+    expect(wrapper.get('a[href$="/blob/main/LICENSE"]').text()).toBe('MIT License')
+    expect(wrapper.get('a[href="https://discord.gg/RPH6SeA36N"]').text()).toBe('Discord')
+  })
 })

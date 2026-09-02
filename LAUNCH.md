@@ -146,41 +146,11 @@ Review these after 30 days:
 - Lupinum contact referrals;
 - the points where users abandon the editor.
 
-## Manual release checklist
+## Operational handoff
 
-### Domain and hosting
+This file owns positioning, search, campaign, and measurement decisions. It
+does not own repository setup, deployment, or rollback instructions.
 
-- [ ] Create the `colors.lupinum.com` DNS record.
-- [ ] Configure the static host to serve `dist/` over HTTPS.
-- [ ] Redirect every request to HTTPS and one canonical hostname.
-- [ ] If `tsg.lupinum.com` was public, redirect it permanently to `colors.lupinum.com`.
-- [ ] Confirm that unknown paths return a real 404 rather than the tool with a `200` response.
-- [ ] Add long-lived immutable caching for hashed files in `dist/assets/`.
-- [ ] Keep `index.html`, `robots.txt`, and `sitemap.xml` on short cache lifetimes.
-
-### Search and sharing
-
-- [ ] Open the production URL and verify the canonical URL, title, and description.
-- [ ] Confirm `/og-image.png` returns the 1200×630 image.
-- [ ] Validate the structured data with Google's Schema Markup Validator.
-- [ ] Add the subdomain to Google Search Console.
-- [ ] Submit `https://colors.lupinum.com/sitemap.xml`.
-- [ ] Request indexing for the home page after the first successful crawl.
-- [ ] Link to the tool from a relevant, crawlable page on `lupinum.com`.
-
-### Product and trust
-
-- [ ] Verify palette generation and all export formats in the production build.
-- [ ] Verify keyboard editing, focus visibility, mobile inspector behavior, and light/dark mode.
-- [ ] Review the Lupinum privacy and legal pages for explicit coverage of the subdomain.
-- [ ] If analytics is added, update the privacy text before enabling it.
-- [ ] Confirm `info@lupinum.com` receives the feedback mail link.
-- [ ] Confirm the Tailwind independence disclaimer remains visible.
-
-### Release
-
-- [ ] Run `vp install`, `vp check`, `vp test`, and `vp run build` from a clean checkout.
-- [ ] Review the complete diff and exclude unrelated files.
-- [ ] Tag the release only after the deployed files match the reviewed build.
-- [ ] Publish one tailored community post and remain available for responses.
-- [ ] Wait for real usage data before creating more tools, paid tiers, or ads.
+Follow [MAINTAINING.md](./MAINTAINING.md) for deployment and production
+verification. Track unresolved GitHub, Vercel, DNS, privacy, search, and launch
+actions in the repository's single `Launch checklist` issue.

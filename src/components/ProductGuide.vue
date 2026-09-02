@@ -127,8 +127,13 @@ defineProps<{ tailwindVersion?: string }>()
 
     <footer class="product-footer">
       <p>Lupinum Colors is a free browser-based tool made by Lupinum in Austria.</p>
-      <nav aria-label="Legal and company links">
+      <nav aria-label="Product, community, and legal links">
         <a href="https://lupinum.com/" rel="noreferrer">Lupinum</a>
+        <a href="https://github.com/lupinum-dev/lupinum-colors" rel="noreferrer">Source</a>
+        <a href="https://discord.gg/RPH6SeA36N" rel="noreferrer">Discord</a>
+        <a href="https://github.com/lupinum-dev/lupinum-colors/blob/main/LICENSE" rel="noreferrer">
+          MIT License
+        </a>
         <a href="https://lupinum.com/datenschutz" rel="noreferrer">Privacy</a>
         <a href="https://lupinum.com/impressum" rel="noreferrer">Legal notice</a>
         <a href="mailto:info@lupinum.com?subject=Lupinum%20Colors%20feedback">Send feedback</a>

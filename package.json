@@ -2,8 +2,16 @@
   "name": "lupinum-colors",
   "version": "0.0.0",
   "private": true,
+  "homepage": "https://colors.lupinum.com/",
+  "bugs": {
+    "url": "https://github.com/lupinum-dev/lupinum-colors/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lupinum-dev/lupinum-colors.git"
+  },
   "type": "module",
-  "packageManager": "pnpm@11.21.0",
   "scripts": {
     "audit:all": "pnpm audit",
     "dev": "vp dev",
@@ -62,5 +70,6 @@
   },
   "engines": {
     "node": "^22.18.0 || ^24.12.0 || ^26.0.0"
-  }
+  },
+  "packageManager": "pnpm@11.21.0"
 }

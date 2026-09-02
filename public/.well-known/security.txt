@@ -1,4 +1,6 @@
 Contact: mailto:info@lupinum.com
+Contact: https://github.com/lupinum-dev/lupinum-colors/security/advisories/new
 Canonical: https://colors.lupinum.com/.well-known/security.txt
+Policy: https://github.com/lupinum-dev/lupinum-colors/blob/main/SECURITY.md
 Preferred-Languages: en, de
 Expires: 2027-09-02T00:00:00.000Z
