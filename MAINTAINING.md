@@ -1,8 +1,18 @@
 # Maintaining Lupinum Colors
 
-This file is the operational source of truth for maintainers. `AGENTS.md`
-defines architecture and agent rules. `CONTRIBUTING.md` defines contributor
-scope. `docs/WRITING.md` defines public writing rules.
+This file is the operational source of truth for maintainers.
+`CONTRIBUTING.md` defines contributor scope.
+
+## Architecture and boundaries
+
+- `src/palette.ts`, `src/color.ts`, and `src/types.ts` own framework-neutral palette generation and color contracts.
+- `src/app/` owns editor state and application transformations.
+- `src/components/` owns the Vue interface.
+- `reference/` contains generated Tailwind calibration data. Only `scripts/build-reference.ts` regenerates it.
+- Canonical palette state uses OKLCH. HSL and HSV are derived views.
+- Shared palettes use the validated URL-fragment contract. Browsers do not send fragments to the server.
+- Keep the deployment static. Do not add accounts, a backend, remote palette storage, or npm publication without an explicit product decision.
+- Preserve keyboard and numeric editing, Tailwind attribution, and the independence disclaimer.
 
 ## Normal change
 
@@ -39,9 +49,8 @@ pnpm verify
 
 ## Documentation or interface copy
 
-Follow [docs/WRITING.md](docs/WRITING.md). Verify affected links and text in the
-rendered application at desktop and mobile widths. Run `pnpm verify` before
-review.
+Use plain, direct public copy. Verify affected links and text in the rendered
+application at desktop and mobile widths. Run `pnpm verify` before review.
 
 ## Deployment
 

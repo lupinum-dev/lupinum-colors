@@ -35,7 +35,7 @@ pnpm dev
 - Add focused tests when behavior or a public contract changes.
 - Update public text when the interface or workflow changes.
 - Include desktop and mobile images for a visual change.
-- Follow [docs/WRITING.md](docs/WRITING.md) for public prose.
+- Use plain, direct language for public prose.
 
 ## Verify the result
 

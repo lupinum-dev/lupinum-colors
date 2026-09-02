@@ -92,8 +92,6 @@ The deployed application does not require a production Node.js server.
 
 ## Documentation
 
-- [Product direction](PRODUCT.md)
-- [Interface design system](DESIGN.md)
 - [Maintainer operations](MAINTAINING.md)
 - [Third-party credits](THIRD_PARTY_NOTICES.md)
 - [Lupinum OSS handbook](https://oss.lupinum.com/)
