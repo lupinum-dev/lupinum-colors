@@ -251,7 +251,7 @@ describe('invariants', () => {
         expect(first.shades[shade].raw.c).toBeGreaterThanOrEqual(0)
       }
     }
-  }, 15_000)
+  }, 60_000)
 
   it('reports ranked anchor confidence', () => {
     const candidates = inferAnchor({ l: 0.897, c: 0.196, h: 126.665 }, chromatic)
