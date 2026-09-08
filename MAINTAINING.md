@@ -91,3 +91,80 @@ Confirm that old deployments cannot read a replacement value.
 The repository is ready to become public only when the `Launch checklist`
 issue proves the GitHub, Vercel, DNS, legal, and production settings that files
 cannot prove.
+
+## Agent-operated local checks
+
+The agent handles local startup, implementation, browser exploration, required
+checks and cleanup. The product owner supplies the intended outcome and decides
+material product tradeoffs. Existing deployment authorization still applies.
+This repository adopts the unpublished shared agent-led development 0.1 draft
+at revision `bace3d8d7f50fb6d5768a04e32c217ea6910b142`. This development workflow
+does not establish production conformance.
+
+Use an unused loopback port and start the existing development command:
+
+```sh
+pnpm dev --host 127.0.0.1 --port <unused-port> --strictPort
+```
+
+The server is ready when Vite+ prints the matching `Local` URL. Open that exact
+URL in an owned disposable browser session and confirm that the page title and
+the `Tailwind shade generator` heading render without a Vite error overlay or
+browser console errors. Keep the process and browser session running across
+edits. This static app needs no test accounts, mailbox, backend, credentials or
+authentication adapter. Use synthetic colors and palette names.
+
+For palette changes, explore input validation and recovery, exact editing,
+keyboard editing, undo and redo, reset, reload, and the current share URL in a
+separate tab. Inspect rendered tokens when export changes. Check visible text,
+screenshots and the phone inspector at a relevant narrow viewport. Investigate
+console errors and failed interactions before classifying defects. Use
+`pnpm exec vp test <test-file>` for a relevant focused test and `pnpm verify`
+for the final gate. Before a deployment, also run `pnpm release:verify` and a
+fresh `pnpm preview` against the completed build. Pure documentation changes do
+not need an unrelated palette journey.
+
+To stop, close every owned browser tab, press `Ctrl-C` in each owned server,
+remove any explicit viewport override or temporary browser profile, and run:
+
+```sh
+lsof -nP -iTCP:<port> -sTCP:LISTEN
+```
+
+No output means the port is released. Report what was actually checked, any
+failed checks and remaining gaps. A local preview falls back to the app for an
+unknown path, so it does not prove the hosted Vercel `404` behavior.
+
+### Adoption evidence — 8 September 2026
+
+- **Proven:** Node 24.18.0 and the pnpm 11.23.0 `packageManager` authority
+  installed the frozen lockfile. The normal dev command printed its URL in less
+  than six seconds with no human intervention or new runtime adapter. Invalid
+  input produced a useful field error and recovered immediately with synthetic
+  input. Browser exploration confirmed generation, keyboard and exact edits,
+  undo, redo, reset, reload, separate-tab share restoration, the rendered
+  Tailwind export, light and dark theme persistence, and the mobile inspector at
+  390 by 844 pixels. Escape closed the inspector, the document had no horizontal
+  overflow, and no browser warnings or errors were recorded.
+- **Proven:** `pnpm release:verify` reported no known dependency
+  vulnerabilities, 87 passing tests, no lint or type errors, a verified Tailwind
+  4.3.3 reference, and successful client, SSR and prerender builds. A fresh
+  built-preview session confirmed the prerendered guide, canonical and social
+  metadata, palette generation and a 13-line Tailwind export.
+- **Proven:** under heavy unrelated CPU load, the 10,000-palette invariant test
+  completed after its former 15-second timeout in two consecutive runs. The
+  assertions and sample count remain unchanged; only that CPU-bound test's
+  timeout is now 60 seconds so contention does not create a false failure.
+- **Proven:** the current production alias serves commit
+  `2a5b55198efcc3e582383d48851f50a5c39fd3d0` through GitHub deployment
+  `6226381219`. The root returned `200` and a synthetic missing path returned
+  Vercel's real `404`. This proves the current deployment, not this unmerged
+  change.
+- **Not applicable:** accounts, roles, authentication, a backend, persistent
+  server data, mail and other external effects.
+- **Unverified:** clipboard contents after the browser reported `Copied`, the
+  other export formats, this branch on a hosted preview or production, and other
+  operating systems.
+- **Cleanup:** the owned browser tabs and local development and preview servers
+  were closed, viewport overrides were reset, and their loopback ports were
+  released. No test data or credentials remained.
