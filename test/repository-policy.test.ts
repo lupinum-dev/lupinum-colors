@@ -23,6 +23,19 @@ describe('repository policy', () => {
     expect(manifest.scripts).not.toHaveProperty('publish')
   })
 
+  it('uses packageManager as the single pnpm version authority', () => {
+    const workflow = read('.github/workflows/ci.yml')
+    const readme = read('README.md')
+    const vercel = read('vercel.json')
+
+    expect(workflow).toContain('corepack enable pnpm')
+    expect(workflow).not.toMatch(/pnpm@\d/)
+    expect(vercel).toContain('corepack enable pnpm')
+    expect(vercel).not.toMatch(/pnpm@\d/)
+    expect(readme).toContain('The pnpm version declared in `package.json`.')
+    expect(readme).not.toMatch(/pnpm \d/)
+  })
+
   it('keeps dependency quarantine and reviewed lifecycle scripts enabled', () => {
     const workspace = read('pnpm-workspace.yaml')
     expect(workspace).toContain('minimumReleaseAge: 1440')

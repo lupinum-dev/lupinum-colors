@@ -54,7 +54,7 @@ page. Browser URL fragments are not sent to the server.
 ## Requirements
 
 - Node.js 22.18–22.x, 24.12–24.x, or 26.x.
-- pnpm 11.21.0.
+- The pnpm version declared in `package.json`.
 - A modern browser for the editor.
 
 ## Installation

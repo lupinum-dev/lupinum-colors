@@ -71,6 +71,8 @@ pnpm release:verify
 Run `pnpm verify` before handoff. Run `pnpm release:verify` before a production
 deployment or open-source launch review.
 
+For local browser exploration and cleanup, follow the agent-operated local checks in `MAINTAINING.md`. Use the existing dev and verification commands; no account or backend setup is needed.
+
 ## Prohibited actions
 
 - Do not regenerate `reference/` through any path except
