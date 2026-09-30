@@ -29,7 +29,7 @@ import {
 import { encodeSharedPalette, paletteToTuple } from '@/app/shared-palette'
 import { writeClipboard } from '@/app/clipboard'
 import { cancelPendingGeneration, scheduleGeneration } from '@/app/pending-generation'
-import { showToast } from '@/app/toast'
+import { showToast, showRegenerationToast } from '@/app/toast'
 import ColorUsePopover from './ColorUsePopover.vue'
 import ExportMenu from './ExportMenu.vue'
 defineProps<{ isDark: boolean }>()
@@ -40,11 +40,7 @@ const pickerHex = computed(() =>
 )
 function regenerate(): void {
   const outcome = generate()
-  if (outcome.ok && outcome.replaced)
-    showToast(
-      `New scale generated. ${outcome.replaced} changed ${outcome.replaced === 1 ? 'shade was' : 'shades were'} replaced.`,
-      { label: 'Undo', run: undo },
-    )
+  if (outcome.ok && outcome.replaced) showRegenerationToast(outcome.replaced)
 }
 function input(event: Event): void {
   seedColor.value = (event.target as HTMLInputElement).value

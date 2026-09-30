@@ -10,21 +10,16 @@ import {
   huePath,
   lastResult,
   seedMode,
-  undo,
   updateGeneration,
   type GenerationSettings,
 } from '@/app/palette-store'
-import { showToast } from '@/app/toast'
+import { showRegenerationToast } from '@/app/toast'
 function returnFocus(): void {
   requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('.use')?.focus())
 }
 function update(patch: Partial<GenerationSettings>): void {
   const outcome = updateGeneration(patch)
-  if (outcome.ok && outcome.replaced)
-    showToast(
-      `New scale generated. ${outcome.replaced} changed ${outcome.replaced === 1 ? 'shade was' : 'shades were'} replaced.`,
-      { label: 'Undo', run: undo },
-    )
+  if (outcome.ok && outcome.replaced) showRegenerationToast(outcome.replaced)
 }
 </script>
 <template>

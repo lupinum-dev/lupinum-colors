@@ -26,7 +26,7 @@ import {
   selectedShade,
   shades,
 } from '../src/app/palette-store'
-import { dismissToast } from '../src/app/toast'
+import { dismissToast, toast } from '../src/app/toast'
 class TestResizeObserver {
   constructor(private readonly callback: ResizeObserverCallback) {}
   observe(): void {
@@ -161,6 +161,21 @@ describe('approved workbench', () => {
     restoreSharedPaletteFromHash('#palette=invalid')
     commit()
     expect(shareLoadError.value).toBeNull()
+  })
+  it('dismisses regeneration Undo after another edit and guards its stored action', async () => {
+    vi.useFakeTimers()
+    const w = render()
+    commitShade(300, { l: 0.72, c: 0.123, h: 287.5 })
+    await w.get('#seed').setValue('#6f5bd6')
+    await vi.advanceTimersByTimeAsync(260)
+    expect(toast.value?.action?.label).toBe('Undo')
+    const action = toast.value!.action!.run
+    commitShade(400, { l: 0.6, c: 0.12, h: 287.5 })
+    await nextTick()
+    expect(toast.value).toBeNull()
+    const index = historyIndex.value
+    action()
+    expect(historyIndex.value).toBe(index)
   })
   it('handles global undo without hijacking source-field undo', async () => {
     const w = render()
