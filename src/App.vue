@@ -2,6 +2,7 @@
 import { onMounted, onBeforeUnmount, ref } from 'vue'
 import ProductGuide from './components/ProductGuide.vue'
 import SourceBar from './components/SourceBar.vue'
+import ContrastSection from './components/ContrastSection.vue'
 import PalettePreview from './components/PalettePreview.vue'
 import EndAdjustments from './components/EndAdjustments.vue'
 import CurveLanes from './components/CurveLanes.vue'
@@ -46,7 +47,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', shortcut))
   <a class="skip-link wb-sr-only" href="#main-content" @click.prevent="moveToSection('main-content')">Skip to palette generator</a>
   <main id="main-content" class="workbench-page page" tabindex="-1">
     <h1 class="wb-sr-only">Tailwind shade generator</h1>
-    <div class="wrap"><div class="app"><SourceBar :is-dark="isDark" @toggle-theme="toggleTheme" /><div class="work"><div class="main"><ScaleStrip @hover="hoverCol = $event" /><ShadeBar /><CurveLanes :hover-col="hoverCol" /></div><aside class="side" aria-label="Preview and adjustments"><PalettePreview /><EndAdjustments /></aside></div></div>
+    <div class="wrap"><div class="app"><SourceBar :is-dark="isDark" @toggle-theme="toggleTheme" /><div class="work"><div class="main"><ScaleStrip @hover="hoverCol = $event" /><ShadeBar /><CurveLanes :hover-col="hoverCol" /></div><aside class="side" aria-label="Preview and adjustments"><PalettePreview /><EndAdjustments /></aside></div><ContrastSection /><footer class="app-foot"><span>Calibrated with the color definitions of Tailwind CSS {{ lastResult?.reference.tailwindVersion }}. Lupinum Colors is independent and is not affiliated with or endorsed by Tailwind Labs.</span><a href="#how-it-works" @click.prevent="moveToSection('how-it-works')">How it works</a></footer></div>
       <ProductGuide id="how-it-works" :tailwind-version="lastResult?.reference.tailwindVersion" />
     </div><AppToast />
   </main>
