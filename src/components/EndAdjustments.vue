@@ -23,6 +23,7 @@ interface Dial {
   max: number
   lo: number
   hi: number
+  unadjustedLightness: number
   pos: number
   changed: boolean
   value: string
@@ -71,6 +72,7 @@ const groups = computed(() => {
       max,
       lo: 0,
       hi: 0,
+      unadjustedLightness: base[end].l,
       pos: colorPos(now.c, max),
       changed: state.chroma !== null,
       value: match
@@ -90,6 +92,7 @@ const groups = computed(() => {
       max: 0,
       lo,
       hi,
+      unadjustedLightness: base[end].l,
       pos: toPos(now.l),
       changed: state.lightness !== null,
       value: `${end} at ${(now.l * 100).toFixed(1)}%`,
@@ -104,13 +107,15 @@ const groups = computed(() => {
 })
 const pointer = ref(false)
 function apply(d: Dial, pos: number, snap = pointer.value): void {
-  const stop = snap ? d.stops.find((s) => Math.abs(s.pos - pos) <= 18) : undefined
+  const stop = snap ? d.stops.find((s) => s.label && Math.abs(s.pos - pos) <= 18) : undefined
   if (d.kind === 'chroma') {
     const c = stop?.chroma ?? (1 - pos / 1000) ** 2 * d.max
     adjustEnd(d.side, { chroma: c >= d.max - 1e-4 ? null : c })
   } else {
     const lightness = d.lo + ((stop?.pos ?? pos) / 1000) * (d.hi - d.lo)
-    adjustEnd(d.side, { lightness })
+    adjustEnd(d.side, {
+      lightness: Math.abs(lightness - d.unadjustedLightness) <= 0.0005 ? null : lightness,
+    })
   }
 }
 function input(d: Dial, event: Event): void {

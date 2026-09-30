@@ -269,6 +269,20 @@ describe('approved workbench', () => {
     await w.get('[aria-label="Reset color of dark shades"]').trigger('click')
     expect(shades.value![950].c).toBe(original)
   })
+  it('keeps Depth unadjusted at the generated tick during pointer input', async () => {
+    seedColor.value = '#6f5bd6'
+    generate()
+    const w = render(),
+      original = shades.value![950].l
+    const tick = w.get('#dark-l').element as HTMLInputElement
+    const position = tick.value
+    await w.get('#dark-l').trigger('pointerdown')
+    tick.value = position
+    await w.get('#dark-l').trigger('input')
+    await w.get('#dark-l').trigger('change')
+    expect(w.find('[aria-label="Reset depth of dark shades"]').exists()).toBe(false)
+    expect(shades.value![950].l).toBe(original)
+  })
   it('protects an anchor at 800 and describes the shorter dark tail', () => {
     seedColor.value = '#315d3b'
     generate()
