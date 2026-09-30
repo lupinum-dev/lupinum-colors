@@ -158,8 +158,7 @@ onBeforeUnmount(cancelPendingGeneration)
   <p v-else-if="shareLoadError" class="bar-msg" role="alert">
     <TriangleAlertIcon class="wb-ic" />
     <span
-      >This share link could not be opened. {{ shareLoadError }} You are seeing the default
-      palette.</span
+      >{{ shareLoadError }} You are seeing the default palette.</span
     >
     <button
       class="wb-btn xs icon"
