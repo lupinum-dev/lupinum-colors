@@ -6,6 +6,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import App from '../src/App.vue'
 import {
   anchor,
+  lastResult,
+  restoreSharedPaletteFromHash,
+  shareLoadError,
+  commit,
   canRedo,
   undo,
   commitShade,
@@ -142,6 +146,21 @@ describe('approved workbench', () => {
     await vi.advanceTimersByTimeAsync(300)
     expect(shades.value).toEqual(previous)
     expect(canRedo.value).toBe(true)
+  })
+  it('reports an invalid shared link until dismissal or successful work', async () => {
+    lastResult.value = null
+    restoreSharedPaletteFromHash('#palette=invalid')
+    const w = render()
+    expect(w.get('[role="alert"]').text()).toContain('This share link could not be opened.')
+    expect(w.get('[role="alert"]').text()).toContain('You are seeing the default palette.')
+    await w.get('[aria-label="Dismiss"]').trigger('click')
+    expect(w.find('[role="alert"]').exists()).toBe(false)
+    restoreSharedPaletteFromHash('#palette=invalid')
+    generate()
+    expect(shareLoadError.value).toBeNull()
+    restoreSharedPaletteFromHash('#palette=invalid')
+    commit()
+    expect(shareLoadError.value).toBeNull()
   })
   it('handles global undo without hijacking source-field undo', async () => {
     const w = render()

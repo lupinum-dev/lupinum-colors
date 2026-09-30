@@ -143,6 +143,7 @@ function palettesMatch(left: ReadonlyPalette, right: ReadonlyPalette): boolean {
 export function commit(): void {
   const next = makeEntry()
   if (!next) return
+  dismissShareLoadError()
   const current = history.value[historyIndex.value]
   if (
     current &&
@@ -182,6 +183,7 @@ export function generate(): GenerateOutcome {
       return { ok: false }
     }
   }
+  dismissShareLoadError()
   const replaced = changedShades.value.length
   lastResult.value = result
   generatedShades.value = Object.fromEntries(

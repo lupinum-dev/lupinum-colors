@@ -11,13 +11,18 @@ import ShadeBar from './components/ShadeBar.vue'
 import AppToast from './components/AppToast.vue'
 import {
   generate,
+  shareLoadError,
   lastResult,
   undo,
   redo,
   canUndo,
   canRedo,
 } from './app/palette-store'
-if (!lastResult.value) generate()
+if (!lastResult.value) {
+  const openedLinkError = shareLoadError.value
+  generate()
+  shareLoadError.value = openedLinkError
+}
 const isDark = ref(true)
 const hoverCol = ref(-1)
 function toggleTheme(): void {

@@ -1,9 +1,19 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount } from 'vue'
-import { Undo2Icon, Redo2Icon, SunIcon, MoonIcon, LinkIcon, TriangleAlertIcon } from '@lucide/vue'
+import {
+  Undo2Icon,
+  Redo2Icon,
+  SunIcon,
+  MoonIcon,
+  LinkIcon,
+  TriangleAlertIcon,
+  XIcon,
+} from '@lucide/vue'
 import { formatHex } from '@/color'
 import {
   anchorShade,
+  shareLoadError,
+  dismissShareLoadError,
   canUndo,
   canRedo,
   committedPaletteName,
@@ -148,6 +158,22 @@ onBeforeUnmount(cancelPendingGeneration)
     <TriangleAlertIcon class="wb-ic" /><span
       >{{ generationError.replace(/\.$/, '') }}. The scale still shows the last valid color.</span
     >
+  </p>
+  <p v-else-if="shareLoadError" class="bar-msg" role="alert">
+    <TriangleAlertIcon class="wb-ic" />
+    <span
+      >This share link could not be opened. {{ shareLoadError }} You are seeing the default
+      palette.</span
+    >
+    <button
+      class="wb-btn xs icon"
+      aria-label="Dismiss"
+      title="Dismiss"
+      style="margin-left: auto"
+      @click="dismissShareLoadError"
+    >
+      <XIcon class="wb-ic" />
+    </button>
   </p>
 </template>
 
