@@ -95,6 +95,7 @@ export function applyEnd(
   if (!tail.length) return { palette: clonePalette(palette), state }
   const next = { ...state, ...patch }
   const { base, origin } = withoutEnd(palette, state)
+  if (!isAdjusted(next)) return { palette: base, state: EMPTY_SIDE }
   for (const shade of tail) origin[shade] ??= { ...base[shade] }
 
   const end = END_SHADE[side]
@@ -121,7 +122,6 @@ export function applyEnd(
     result[shade] = { ...adjusted[shade] }
     written[shade] = { ...adjusted[shade] }
   }
-  if (!isAdjusted(next)) return { palette: result, state: EMPTY_SIDE }
   return {
     palette: result,
     state: { chroma: next.chroma, lightness: next.lightness, origin, written },

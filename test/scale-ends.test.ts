@@ -45,6 +45,14 @@ describe('scale ends', () => {
     expect(reset.state).toEqual(emptyEnds().dark)
   })
 
+  it('restores a manually lightened dark end without clamping on reset', () => {
+    const original = palette()
+    original[950] = { ...original[950], l: 0.9 }
+    const first = applyEnd('dark', original, emptyEnds().dark, { chroma: 0.005 }, 500)
+    const reset = applyEnd('dark', first.palette, first.state, { chroma: null }, 500)
+    expect(reset.palette[950].l).toBe(0.9)
+  })
+
   it('keeps a manual hue edit when the end is adjusted again', () => {
     const first = applyEnd('dark', palette(), emptyEnds().dark, { chroma: 0.005 }, 500)
     first.palette[900] = { ...first.palette[900], h: 270 }
