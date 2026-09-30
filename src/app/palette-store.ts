@@ -125,7 +125,7 @@ function makeEntry(): HistoryEntry | null {
     generated: clonePalette(generatedShades.value),
     result: lastResult.value,
     settings: {
-      seedColor: seedColor.value,
+      seedColor: lastResult.value.input.original,
       seedMode: seedMode.value,
       anchor: anchor.value,
       gamut: gamut.value,

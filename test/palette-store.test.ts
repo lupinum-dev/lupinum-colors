@@ -25,6 +25,7 @@ import {
   undo,
   updateGeneration,
 } from '../src/app/palette-store'
+import { decodeSharedPalette } from '../src/app/shared-palette'
 import { clonePalette } from '../src/app/palette-tools'
 import { emptyEnds } from '../src/app/scale-ends'
 beforeEach(() => {
@@ -57,6 +58,10 @@ describe('workbench palette state', () => {
     expect(generate()).toEqual({ ok: false })
     expect(generationError.value).toContain('#6f5bd')
     expect(shades.value).toEqual(previous)
+    commitShade(300, { l: 0.72, c: 0.123, h: 287.5 })
+    expect(decodeSharedPalette(window.location.hash)?.r[1]).toBe('#3b82f6')
+    undo()
+    expect(seedColor.value).toBe('#3b82f6')
   })
   it('keeps invalid names out of generation and tokens', () => {
     paletteName.value = 'not valid!'
