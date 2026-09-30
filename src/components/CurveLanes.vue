@@ -118,7 +118,7 @@ const lanes = computed<Lane[]>(() => {
         ch.key === 'h'
           ? circularMean(
               values,
-              SH.map((s) => Math.min(1, current[s].c / 0.02) + 0.001),
+              SH.map((s) => current[s].c),
             )
           : 0
       const all = [...values, ...(rv ?? []), ...(gv ?? [])].map((v) =>
@@ -135,7 +135,7 @@ const lanes = computed<Lane[]>(() => {
         if (span >= 300) {
           max = 360
         } else {
-          const mid = Math.round((lo + hi) / 2)
+          const mid = center
           min = mid - span / 2
           max = mid + span / 2
         }

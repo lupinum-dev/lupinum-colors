@@ -104,7 +104,7 @@ onBeforeUnmount(() => clearTimeout(timer))
           title="Pick a color"
           @input="pick"
       /></label>
-      <div class="wb-inp src" :data-invalid="!!generationError">
+      <div class="wb-inp src wb-mono" :data-invalid="!!generationError">
         <label class="wb-sr-only" for="seed">Your color</label
         ><input
           id="seed"
