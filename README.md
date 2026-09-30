@@ -19,9 +19,7 @@ made. Lupinum Colors exposes the lightness, chroma, and hue curves behind every
 shade. You can compare the result with Tailwind's color families, make exact
 changes, test contrast, and export implementation-ready tokens.
 
-The editor keeps OKLCH values as its single source of truth. HSL and HSV are
-derived editing views, so switching formats does not create competing palette
-state.
+The editor keeps OKLCH values as its single source of truth.
 
 ## When to use it
 
@@ -46,8 +44,8 @@ page. Browser URL fragments are not sent to the server.
 
 1. Enter a source color and choose how it anchors the scale.
 2. Compare the generated curve with nearby Tailwind color families.
-3. Edit lightness, chroma or saturation, and hue with curves or exact fields.
-4. Refine the light and dark ends of the scale.
+3. Edit lightness, chroma, and hue with curves or exact fields.
+4. Take color out of the light and dark ends.
 5. Test the palette in interface previews and the contrast matrix.
 6. Export Tailwind v4, CSS, or JSON tokens.
 
