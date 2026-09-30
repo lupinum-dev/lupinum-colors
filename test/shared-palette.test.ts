@@ -8,23 +8,23 @@ import {
   type SharedPaletteV1,
 } from '../src/app/shared-palette'
 import {
-  applyPreview,
-  beginContinuousEdit,
-  commitPalette,
-  endContinuousEdit,
+  adjustEnd,
+  commit,
+  commitShade,
+  endsState,
   generate,
   generatedShades,
+  history,
   historyIndex,
   paletteName,
   redo,
-  resetToGenerated,
   restoreSharedPaletteFromHash,
   seedColor,
-  setPreview,
   setShadeColor,
   shades,
   undo,
 } from '../src/app/palette-store'
+import { emptyEnds } from '../src/app/scale-ends'
 import { clonePalette } from '../src/app/palette-tools'
 
 function currentPayload(): SharedPaletteV1 {
@@ -108,41 +108,28 @@ describe('share palette codec', () => {
 describe('live palette URL state', () => {
   it('updates only for committed palette states', () => {
     const replaceState = vi.spyOn(window.history, 'replaceState')
-    generate()
-    const afterGenerate = replaceState.mock.calls.length
-
-    const shade = shades.value![500]
-    beginContinuousEdit()
-    setShadeColor(500, { ...shade, c: shade.c * 0.8 })
-    setPreview(shades.value!, 'Preview only')
-    expect(replaceState).toHaveBeenCalledTimes(afterGenerate)
-
-    endContinuousEdit()
-    expect(replaceState).toHaveBeenCalledTimes(afterGenerate + 1)
-    const committed = clonePalette(shades.value!)
-    commitPalette(committed)
-    expect(replaceState).toHaveBeenCalledTimes(afterGenerate + 1)
-
+    replaceState.mockClear()
+    setShadeColor(500, { ...shades.value![500], c: 0.12 })
+    expect(replaceState).toHaveBeenCalledTimes(0)
+    commit()
+    expect(replaceState).toHaveBeenCalledTimes(1)
+    commit()
+    expect(replaceState).toHaveBeenCalledTimes(1)
     undo()
     redo()
-    expect(replaceState).toHaveBeenCalledTimes(afterGenerate + 3)
-    expect(historyIndex.value).toBe(1)
-
-    resetToGenerated()
-    expect(replaceState).toHaveBeenCalledTimes(afterGenerate + 4)
-    const endpointEdit = clonePalette(shades.value!)
-    endpointEdit[50] = { ...endpointEdit[50], l: endpointEdit[50].l - 0.01 }
-    setPreview(endpointEdit, 'Endpoint preview')
-    expect(replaceState).toHaveBeenCalledTimes(afterGenerate + 4)
-    applyPreview()
-    expect(replaceState).toHaveBeenCalledTimes(afterGenerate + 5)
+    expect(replaceState).toHaveBeenCalledTimes(3)
+    adjustEnd('dark', { chroma: 0 })
+    expect(replaceState).toHaveBeenCalledTimes(3)
+    commit()
+    expect(replaceState).toHaveBeenCalledTimes(4)
+    replaceState.mockRestore()
   })
 
   it('restores the exact current palette and generated reset baseline', () => {
     const baseline = clonePalette(generatedShades.value!)
     const edited = clonePalette(shades.value!)
     edited[300] = { l: 0.72, c: 0.123, h: 287.5 }
-    commitPalette(edited)
+    commitShade(300, edited[300])
     const hash = window.location.hash
 
     seedColor.value = '#fff'
@@ -150,5 +137,8 @@ describe('live palette URL state', () => {
     expect(restoreSharedPaletteFromHash(hash)).toBe('restored')
     expect(shades.value).toEqual(edited)
     expect(generatedShades.value).toEqual(baseline)
+    expect(endsState.value).toEqual(emptyEnds())
+    expect(history.value).toHaveLength(1)
+    expect(historyIndex.value).toBe(0)
   })
 })
