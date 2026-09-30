@@ -20,6 +20,8 @@ import {
   referenceName,
   referenceRanks,
   seedColor,
+  selectedShade,
+  selectShade,
   seedMode,
   shades,
   undo,
@@ -51,6 +53,15 @@ describe('workbench palette state', () => {
     expect(shades.value).toEqual(edited)
     expect(seedColor.value).toBe('#3b82f6')
     expect(generatedShades.value).toEqual(baseline)
+  })
+  it('keeps the current selection and comparison when undoing regeneration', () => {
+    selectShade(300)
+    referenceName.value = 'none'
+    seedColor.value = '#6f5bd6'
+    generate()
+    undo()
+    expect(selectedShade.value).toBe(300)
+    expect(referenceName.value).toBe('none')
   })
   it('keeps the last palette for invalid color input', () => {
     const previous = clonePalette(shades.value!)

@@ -183,6 +183,14 @@ export function generate(): GenerateOutcome {
       return { ok: false }
     }
   }
+  const current = history.value[historyIndex.value]
+  if (current) {
+    history.value = history.value.map((entry, index) =>
+      index === historyIndex.value
+        ? { ...entry, selected: selectedShade.value, reference: referenceName.value }
+        : entry,
+    )
+  }
   dismissShareLoadError()
   const replaced = changedShades.value.length
   lastResult.value = result
