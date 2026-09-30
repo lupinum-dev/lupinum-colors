@@ -13,6 +13,7 @@ import {
   type SeedMode,
   type Shade,
 } from '@/types'
+import { cancelPendingGeneration } from './pending-generation'
 import { clonePalette, rankReferences } from './palette-tools'
 import { isValidPaletteName } from './palette-name'
 import { applyEnd, emptyEnds, type EndsState, type EndSide, type EndPatch } from './scale-ends'
@@ -247,12 +248,14 @@ function restoreEntry(saved: HistoryEntry): void {
   syncSharedPaletteUrl()
 }
 export function undo(): void {
+  cancelPendingGeneration()
   if (canUndo.value) {
     historyIndex.value--
     restoreEntry(history.value[historyIndex.value]!)
   }
 }
 export function redo(): void {
+  cancelPendingGeneration()
   if (canRedo.value) {
     historyIndex.value++
     restoreEntry(history.value[historyIndex.value]!)

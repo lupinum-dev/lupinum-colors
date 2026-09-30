@@ -18,6 +18,7 @@ import {
 } from '@/app/palette-store'
 import { encodeSharedPalette, paletteToTuple } from '@/app/shared-palette'
 import { writeClipboard } from '@/app/clipboard'
+import { cancelPendingGeneration, scheduleGeneration } from '@/app/pending-generation'
 import { showToast } from '@/app/toast'
 import ColorUsePopover from './ColorUsePopover.vue'
 import ExportMenu from './ExportMenu.vue'
@@ -27,7 +28,6 @@ const anchorDisplay = computed(() => displayShades.value.find((e) => e.shade ===
 const pickerHex = computed(() =>
   anchorDisplay.value ? formatHex(anchorDisplay.value.mapped) : '#16661f',
 )
-let timer: ReturnType<typeof setTimeout> | undefined
 function regenerate(): void {
   const outcome = generate()
   if (outcome.ok && outcome.replaced)
@@ -38,11 +38,10 @@ function regenerate(): void {
 }
 function input(event: Event): void {
   seedColor.value = (event.target as HTMLInputElement).value
-  clearTimeout(timer)
-  timer = setTimeout(regenerate, 260)
+  scheduleGeneration(regenerate)
 }
 function pick(event: Event): void {
-  clearTimeout(timer)
+  cancelPendingGeneration()
   seedColor.value = (event.target as HTMLInputElement).value
   regenerate()
 }
@@ -70,7 +69,7 @@ async function copyLink(): Promise<void> {
       : 'Copy was blocked by this browser.',
   )
 }
-onBeforeUnmount(() => clearTimeout(timer))
+onBeforeUnmount(cancelPendingGeneration)
 </script>
 <template>
   <header class="bar">

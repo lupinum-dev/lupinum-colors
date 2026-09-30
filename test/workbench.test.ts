@@ -6,6 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import App from '../src/App.vue'
 import {
   anchor,
+  canRedo,
+  undo,
   commitShade,
   displayShades,
   gamut,
@@ -129,6 +131,17 @@ describe('approved workbench', () => {
     await vi.advanceTimersByTimeAsync(1)
     expect(shades.value).not.toBe(previous)
     expect(w.get('.use').text()).toBe('Exact at 500')
+  })
+  it('cancels typed regeneration when undo restores history', async () => {
+    vi.useFakeTimers()
+    const w = render(),
+      previous = shades.value
+    commitShade(300, { l: 0.72, c: 0.123, h: 287.5 })
+    await w.get('#seed').setValue('#6f5bd6')
+    undo()
+    await vi.advanceTimersByTimeAsync(300)
+    expect(shades.value).toEqual(previous)
+    expect(canRedo.value).toBe(true)
   })
   it('handles global undo without hijacking source-field undo', async () => {
     const w = render()
