@@ -7,7 +7,7 @@ function act(): void {
 </script>
 <template>
   <div role="status" aria-live="polite" class="wb-sr-only">{{ toast?.message ?? '' }}</div>
-  <Transition name="toast"
+  <Transition name="toast" mode="out-in"
     ><div v-if="toast" :key="toast.id" class="toast">
       <span>{{ toast.message }}</span
       ><button v-if="toast.action" class="wb-btn sm" @click="act">{{ toast.action.label }}</button>

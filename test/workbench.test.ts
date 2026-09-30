@@ -213,6 +213,18 @@ describe('approved workbench', () => {
     expect(w.findAll('.sw-hex').every((e) => e.text() === '')).toBe(true)
     expect(w.get('button[aria-label^="Copy HEX"]').attributes('disabled')).toBeDefined()
   })
+  it('keeps the Use dialog named and open while applying a new anchor', async () => {
+    const w = render()
+    await w.get('.use').trigger('click')
+    await flushPromises()
+    const dialog = document.querySelector('[role="dialog"]')!
+    expect(dialog.getAttribute('aria-labelledby')).toBe('color-use-title')
+    const option = dialog.querySelector<HTMLButtonElement>('[aria-label="Shade 600"]')!
+    option.click()
+    await nextTick()
+    expect(w.get('.use').text()).toBe('Exact at 600')
+    expect(dialog.isConnected).toBe(true)
+  })
   it('shows ten preview pairs and toggles all 169 matrix cells', async () => {
     const w = render()
     expect(w.findAll('.pairs tbody tr')).toHaveLength(10)

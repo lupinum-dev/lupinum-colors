@@ -16,7 +16,6 @@ import {
   redo,
   canUndo,
   canRedo,
-  restoreSharedPaletteFromHash,
   shareLoadError,
 } from './app/palette-store'
 import { showToast } from './app/toast'
@@ -59,7 +58,6 @@ function shortcut(event: KeyboardEvent): void {
 }
 onMounted(() => {
   isDark.value = document.documentElement.classList.contains('dark')
-  restoreSharedPaletteFromHash(window.location.hash)
   if (shareLoadError.value) showToast(shareLoadError.value)
   window.addEventListener('keydown', shortcut)
 })

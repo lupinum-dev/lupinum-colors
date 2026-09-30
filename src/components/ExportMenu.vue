@@ -49,27 +49,31 @@ async function copy(): Promise<void> {
         ><ChevronDownIcon class="wb-ic"
       /></PopoverTrigger>
       <PopoverPortal
-        ><PopoverContent class="pop" align="end" :side-offset="8" aria-label="Export options">
-          <div class="pop-head">
-            <h3>Export {{ committedPaletteName }}</h3>
-            <div class="wb-seg" role="radiogroup" aria-label="Format">
-              <button
-                v-for="f in formats"
-                :key="f.id"
-                role="radio"
-                :aria-checked="format === f.id"
-                @click="format = f.id"
-              >
-                {{ f.label }}
+        ><PopoverContent align="end" :side-offset="8" as-child>
+          <div class="pop" aria-labelledby="export-title">
+            <div class="pop-head">
+              <h3 id="export-title">Export {{ committedPaletteName }}</h3>
+              <div class="wb-seg" role="radiogroup" aria-label="Format">
+                <button
+                  v-for="f in formats"
+                  :key="f.id"
+                  role="radio"
+                  :aria-checked="format === f.id"
+                  @click="format = f.id"
+                >
+                  {{ f.label }}
+                </button>
+              </div>
+            </div>
+            <pre tabindex="0" aria-label="Export code">{{ code }}</pre>
+            <div class="pop-foot">
+              <p class="wb-help">{{ note }}</p>
+              <button class="wb-btn primary sm" @click="copy">
+                <CopyIcon class="wb-ic" />Copy
               </button>
             </div>
-          </div>
-          <pre tabindex="0" aria-label="Export code">{{ code }}</pre>
-          <div class="pop-foot">
-            <p class="wb-help">{{ note }}</p>
-            <button class="wb-btn primary sm" @click="copy"><CopyIcon class="wb-ic" />Copy</button>
-          </div>
-        </PopoverContent></PopoverPortal
+          </div></PopoverContent
+        ></PopoverPortal
       >
     </PopoverRoot>
   </div>

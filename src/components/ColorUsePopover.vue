@@ -15,6 +15,9 @@ import {
   type GenerationSettings,
 } from '@/app/palette-store'
 import { showToast } from '@/app/toast'
+function returnFocus(): void {
+  requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('.use')?.focus())
+}
 function update(patch: Partial<GenerationSettings>): void {
   const outcome = updateGeneration(patch)
   if (outcome.ok && outcome.replaced)
@@ -32,112 +35,114 @@ function update(patch: Partial<GenerationSettings>): void {
     /></PopoverTrigger>
     <PopoverPortal
       ><PopoverContent
-        class="pop"
         align="start"
         :side-offset="8"
-        aria-label="How your color is used"
+        @close-auto-focus.prevent="returnFocus"
+        as-child
       >
-        <h3>How your color is used</h3>
-        <div class="wb-ctl">
-          <div class="wb-seg full" role="radiogroup" aria-label="Color matching">
-            <button
-              role="radio"
-              :aria-checked="seedMode === 'exact'"
-              @click="update({ seedMode: 'exact' })"
-            >
-              Keep it exact
-            </button>
-            <button
-              role="radio"
-              :aria-checked="seedMode === 'canonical'"
-              @click="update({ seedMode: 'canonical' })"
-            >
-              Fit to Tailwind
-            </button>
+        <div class="pop" aria-labelledby="color-use-title">
+          <h3 id="color-use-title">How your color is used</h3>
+          <div class="wb-ctl">
+            <div class="wb-seg full" role="radiogroup" aria-label="Color matching">
+              <button
+                role="radio"
+                :aria-checked="seedMode === 'exact'"
+                @click="update({ seedMode: 'exact' })"
+              >
+                Keep it exact
+              </button>
+              <button
+                role="radio"
+                :aria-checked="seedMode === 'canonical'"
+                @click="update({ seedMode: 'canonical' })"
+              >
+                Fit to Tailwind
+              </button>
+            </div>
+            <p class="wb-help">
+              {{
+                seedMode === 'exact'
+                  ? `Your color appears unchanged as shade ${anchorShade}.`
+                  : `Your color is moved onto Tailwind’s own curve for shade ${anchorShade}.`
+              }}
+            </p>
           </div>
-          <p class="wb-help">
-            {{
-              seedMode === 'exact'
-                ? `Your color appears unchanged as shade ${anchorShade}.`
-                : `Your color is moved onto Tailwind’s own curve for shade ${anchorShade}.`
-            }}
-          </p>
-        </div>
-        <div class="wb-ctl">
-          <span id="place-label" class="wb-cl">Place it at</span>
-          <div class="place" role="radiogroup" aria-labelledby="place-label">
-            <button
-              class="auto"
-              role="radio"
-              :aria-checked="anchor === 'auto'"
-              @click="update({ anchor: 'auto' })"
-            >
-              Auto
-            </button>
-            <button
-              v-for="e in displayShades"
-              :key="e.shade"
-              role="radio"
-              :aria-checked="anchor === e.shade"
-              :aria-label="`Shade ${e.shade}`"
-              :style="{
-                background: e.css,
-                color: e.contrastOnBlack >= e.contrastOnWhite ? '#000' : '#fff',
-              }"
-              @click="update({ anchor: e.shade })"
-            >
-              {{ e.shade === anchorShade ? '●' : '' }}
-            </button>
+          <div class="wb-ctl">
+            <span id="place-label" class="wb-cl">Place it at</span>
+            <div class="place" role="radiogroup" aria-labelledby="place-label">
+              <button
+                class="auto"
+                role="radio"
+                :aria-checked="anchor === 'auto'"
+                @click="update({ anchor: 'auto' })"
+              >
+                Auto
+              </button>
+              <button
+                v-for="e in displayShades"
+                :key="e.shade"
+                role="radio"
+                :aria-checked="anchor === e.shade"
+                :aria-label="`Shade ${e.shade}`"
+                :style="{
+                  background: e.css,
+                  color: e.contrastOnBlack >= e.contrastOnWhite ? '#000' : '#fff',
+                }"
+                @click="update({ anchor: e.shade })"
+              >
+                {{ e.shade === anchorShade ? '●' : '' }}
+              </button>
+            </div>
+            <p class="wb-help">
+              {{
+                anchor === 'auto'
+                  ? `Auto picked ${anchorShade}, the shade your color resembles most.`
+                  : `Placed at ${anchor} by you.`
+              }}
+            </p>
           </div>
-          <p class="wb-help">
-            {{
-              anchor === 'auto'
-                ? `Auto picked ${anchorShade}, the shade your color resembles most.`
-                : `Placed at ${anchor} by you.`
-            }}
-          </p>
-        </div>
-        <div v-if="hueDriftOptions.length > 1" class="wb-ctl">
-          <span id="hue-label" class="wb-cl">Hue drift across the scale</span>
-          <div class="wb-seg full" role="radiogroup" aria-labelledby="hue-label">
-            <button
-              v-for="option in hueDriftOptions"
-              :key="option"
-              role="radio"
-              :aria-checked="huePath === option"
-              @click="update({ huePath: option })"
-            >
-              {{ option === 'balanced' ? 'Balanced' : `Like ${option}` }}
-            </button>
+          <div v-if="hueDriftOptions.length > 1" class="wb-ctl">
+            <span id="hue-label" class="wb-cl">Hue drift across the scale</span>
+            <div class="wb-seg full" role="radiogroup" aria-labelledby="hue-label">
+              <button
+                v-for="option in hueDriftOptions"
+                :key="option"
+                role="radio"
+                :aria-checked="huePath === option"
+                @click="update({ huePath: option })"
+              >
+                {{ option === 'balanced' ? 'Balanced' : `Like ${option}` }}
+              </button>
+            </div>
           </div>
-        </div>
-        <div class="wb-ctl">
-          <span id="gamut-label" class="wb-cl">Display range</span>
-          <div class="wb-seg full" role="radiogroup" aria-labelledby="gamut-label">
-            <button
-              role="radio"
-              :aria-checked="gamut === 'srgb'"
-              @click="update({ gamut: 'srgb' })"
-            >
-              sRGB
-            </button>
-            <button
-              role="radio"
-              :aria-checked="gamut === 'display-p3'"
-              @click="update({ gamut: 'display-p3' })"
-            >
-              Display P3
-            </button>
-            <button
-              role="radio"
-              :aria-checked="gamut === 'none'"
-              @click="update({ gamut: 'none' })"
-            >
-              No limit
-            </button>
+          <div class="wb-ctl">
+            <span id="gamut-label" class="wb-cl">Display range</span>
+            <div class="wb-seg full" role="radiogroup" aria-labelledby="gamut-label">
+              <button
+                role="radio"
+                :aria-checked="gamut === 'srgb'"
+                @click="update({ gamut: 'srgb' })"
+              >
+                sRGB
+              </button>
+              <button
+                role="radio"
+                :aria-checked="gamut === 'display-p3'"
+                @click="update({ gamut: 'display-p3' })"
+              >
+                Display P3
+              </button>
+              <button
+                role="radio"
+                :aria-checked="gamut === 'none'"
+                @click="update({ gamut: 'none' })"
+              >
+                No limit
+              </button>
+            </div>
           </div>
-        </div>
-      </PopoverContent></PopoverPortal
+        </div></PopoverContent
+      ></PopoverPortal
     >
   </PopoverRoot>
 </template>
