@@ -1,5 +1,11 @@
 import { circularHueDistance } from '../color'
-import { SHADE_NAMES, type OklchColor, type Palette, type ReadonlyPalette, type Shade } from '../types'
+import {
+  SHADE_NAMES,
+  type OklchColor,
+  type Palette,
+  type ReadonlyPalette,
+  type Shade,
+} from '../types'
 import { adjustPaletteEnds, clonePalette, type PaletteEndOptions } from './palette-tools'
 
 export type EndSide = 'dark' | 'light'
@@ -62,7 +68,10 @@ function sameColor(a: OklchColor, b: OklchColor): boolean {
  * The palette without this side's adjustment. A shade the user edited after the
  * adjustment keeps the edit and becomes the new starting point.
  */
-export function withoutEnd(palette: ReadonlyPalette, state: EndSideState): { base: Palette; origin: ShadeColors } {
+export function withoutEnd(
+  palette: ReadonlyPalette,
+  state: EndSideState,
+): { base: Palette; origin: ShadeColors } {
   const base = clonePalette(palette)
   const origin: ShadeColors = { ...state.origin }
   for (const shade of SHADE_NAMES) {
@@ -89,12 +98,21 @@ export function applyEnd(
   for (const shade of tail) origin[shade] ??= { ...base[shade] }
 
   const end = END_SHADE[side]
-  const keep = next.chroma === null || base[end].c < 1e-6 ? 1 : Math.min(1, next.chroma / base[end].c)
+  const keep =
+    next.chroma === null || base[end].c < 1e-6 ? 1 : Math.min(1, next.chroma / base[end].c)
   const lightness = next.lightness ?? base[end].l
   const options: PaletteEndOptions =
     side === 'dark'
-      ? { light: { lightness: base[50].l, tintRetention: 1 }, dark: { lightness, tintRetention: keep }, spread: tail.length }
-      : { light: { lightness, tintRetention: keep }, dark: { lightness: base[950].l, tintRetention: 1 }, spread: tail.length }
+      ? {
+          light: { lightness: base[50].l, tintRetention: 1 },
+          dark: { lightness, tintRetention: keep },
+          spread: tail.length,
+        }
+      : {
+          light: { lightness, tintRetention: keep },
+          dark: { lightness: base[950].l, tintRetention: 1 },
+          spread: tail.length,
+        }
   const adjusted = adjustPaletteEnds(base, options)
 
   const result = clonePalette(base)
@@ -104,5 +122,8 @@ export function applyEnd(
     written[shade] = { ...adjusted[shade] }
   }
   if (!isAdjusted(next)) return { palette: result, state: EMPTY_SIDE }
-  return { palette: result, state: { chroma: next.chroma, lightness: next.lightness, origin, written } }
+  return {
+    palette: result,
+    state: { chroma: next.chroma, lightness: next.lightness, origin, written },
+  }
 }

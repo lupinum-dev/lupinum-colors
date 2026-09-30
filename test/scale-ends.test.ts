@@ -5,7 +5,9 @@ import { applyEnd, emptyEnds, endTail } from '../src/app/scale-ends'
 
 function palette(color = '#6f5bd6'): Palette {
   const result = generatePalette({ name: 'brand', color })
-  return Object.fromEntries(SHADE_NAMES.map((shade) => [shade, { ...result.shades[shade].raw }])) as Palette
+  return Object.fromEntries(
+    SHADE_NAMES.map((shade) => [shade, { ...result.shades[shade].raw }]),
+  ) as Palette
 }
 
 describe('scale ends', () => {

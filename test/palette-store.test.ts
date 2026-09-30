@@ -1,11 +1,42 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it } from 'vite-plus/test'
-import { adjustEnd, anchor, commit, committedPaletteName, commitShade, endsState, gamut, generate, generatedShades, generationError, history, historyIndex, huePath, nameIsValid, paletteName, redo, referenceName, referenceRanks, seedColor, seedMode, shades, undo, updateGeneration } from '../src/app/palette-store'
+import {
+  adjustEnd,
+  anchor,
+  commit,
+  committedPaletteName,
+  commitShade,
+  endsState,
+  gamut,
+  generate,
+  generatedShades,
+  generationError,
+  history,
+  historyIndex,
+  huePath,
+  nameIsValid,
+  paletteName,
+  redo,
+  referenceName,
+  referenceRanks,
+  seedColor,
+  seedMode,
+  shades,
+  undo,
+  updateGeneration,
+} from '../src/app/palette-store'
 import { clonePalette } from '../src/app/palette-tools'
 import { emptyEnds } from '../src/app/scale-ends'
 beforeEach(() => {
-  history.value = []; historyIndex.value = -1
-  paletteName.value = 'brand'; seedColor.value = '#3b82f6'; seedMode.value = 'exact'; anchor.value = 'auto'; gamut.value = 'srgb'; huePath.value = 'balanced'; referenceName.value = ''
+  history.value = []
+  historyIndex.value = -1
+  paletteName.value = 'brand'
+  seedColor.value = '#3b82f6'
+  seedMode.value = 'exact'
+  anchor.value = 'auto'
+  gamut.value = 'srgb'
+  huePath.value = 'balanced'
+  referenceName.value = ''
   generate()
 })
 describe('workbench palette state', () => {
@@ -35,7 +66,9 @@ describe('workbench palette state', () => {
   })
   it('undoes and redoes both end colors and adjustment state', () => {
     const previous = shades.value![950].c
-    adjustEnd('dark', { chroma: 0 }); commit(); undo()
+    adjustEnd('dark', { chroma: 0 })
+    commit()
+    undo()
     expect(shades.value![950].c).toBe(previous)
     expect(endsState.value.dark).toEqual(emptyEnds().dark)
     redo()
@@ -44,13 +77,16 @@ describe('workbench palette state', () => {
   })
   it('defaults to the best comparison and preserves Nothing', () => {
     expect(referenceName.value).toBe(referenceRanks.value[0]!.family.name)
-    referenceName.value = 'none'; generate()
+    referenceName.value = 'none'
+    generate()
     expect(referenceName.value).toBe('none')
   })
   it('records settings-only regeneration for undo and sharing', () => {
     updateGeneration({ gamut: 'display-p3' })
     expect(history.value).toHaveLength(2)
-    undo(); expect(gamut.value).toBe('srgb')
-    redo(); expect(gamut.value).toBe('display-p3')
+    undo()
+    expect(gamut.value).toBe('srgb')
+    redo()
+    expect(gamut.value).toBe('display-p3')
   })
 })

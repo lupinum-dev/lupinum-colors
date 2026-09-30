@@ -7,7 +7,23 @@ import {
   paletteToTuple,
   type SharedPaletteV1,
 } from '../src/app/shared-palette'
-import { adjustEnd, commit, commitShade, endsState, generate, generatedShades, history, historyIndex, paletteName, redo, restoreSharedPaletteFromHash, seedColor, setShadeColor, shades, undo } from '../src/app/palette-store'
+import {
+  adjustEnd,
+  commit,
+  commitShade,
+  endsState,
+  generate,
+  generatedShades,
+  history,
+  historyIndex,
+  paletteName,
+  redo,
+  restoreSharedPaletteFromHash,
+  seedColor,
+  setShadeColor,
+  shades,
+  undo,
+} from '../src/app/palette-store'
 import { emptyEnds } from '../src/app/scale-ends'
 import { clonePalette } from '../src/app/palette-tools'
 
