@@ -177,6 +177,35 @@ describe('approved workbench', () => {
     action()
     expect(historyIndex.value).toBe(index)
   })
+  it('selects and focuses matching and export radios with one tab stop per group', async () => {
+    const w = render()
+    await w.get('.use').trigger('click')
+    await flushPromises()
+    const matching = document.querySelector('[aria-label="Color matching"]')!
+    const exact = matching.querySelector<HTMLButtonElement>('[aria-checked="true"]')!
+    exact.focus()
+    exact.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    await nextTick()
+    const fitted = matching.querySelector('[aria-checked="true"]')!
+    expect(fitted.textContent?.trim()).toBe('Fit to Tailwind')
+    expect(document.activeElement).toBe(fitted)
+    expect(matching.querySelectorAll('[tabindex="0"]')).toHaveLength(1)
+    wrapper?.unmount()
+    await flushPromises()
+    const exportView = render()
+    await exportView.get('[aria-label="Export options"]').trigger('click')
+    await flushPromises()
+    await nextTick()
+    const format = document.querySelector('[aria-label="Format"]')!
+    const tailwind = format.querySelector<HTMLButtonElement>('[aria-checked="true"]')!
+    tailwind.focus()
+    tailwind.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    await nextTick()
+    const css = format.querySelector('[aria-checked="true"]')!
+    expect(css.textContent?.trim()).toBe('CSS')
+    expect(document.activeElement).toBe(css)
+    expect(format.querySelectorAll('[tabindex="0"]')).toHaveLength(1)
+  })
   it('handles global undo without hijacking source-field undo', async () => {
     const w = render()
     commitShade(300, { l: 0.72, c: 0.123, h: 287.5 })

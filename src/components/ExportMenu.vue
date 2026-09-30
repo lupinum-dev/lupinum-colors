@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SegmentedChoice from './SegmentedChoice.vue'
 import { computed, ref } from 'vue'
 import { CopyIcon, ChevronDownIcon } from '@lucide/vue'
 import { PopoverRoot, PopoverTrigger, PopoverPortal, PopoverContent } from 'reka-ui'
@@ -9,9 +10,9 @@ import { showToast } from '@/app/toast'
 const open = ref(false)
 const format = ref<ExportFormat>('tailwind')
 const formats = [
-  { id: 'tailwind', label: 'Tailwind v4' },
-  { id: 'css', label: 'CSS' },
-  { id: 'json', label: 'JSON' },
+  { value: 'tailwind', label: 'Tailwind v4' },
+  { value: 'css', label: 'CSS' },
+  { value: 'json', label: 'JSON' },
 ] as const
 const copyLabel = computed(
   () =>
@@ -53,17 +54,7 @@ async function copy(): Promise<void> {
           <div class="pop" aria-labelledby="export-title">
             <div class="pop-head">
               <h3 id="export-title">Export {{ committedPaletteName }}</h3>
-              <div class="wb-seg" role="radiogroup" aria-label="Format">
-                <button
-                  v-for="f in formats"
-                  :key="f.id"
-                  role="radio"
-                  :aria-checked="format === f.id"
-                  @click="format = f.id"
-                >
-                  {{ f.label }}
-                </button>
-              </div>
+              <SegmentedChoice v-model="format" :options="formats" aria-label="Format" />
             </div>
             <pre tabindex="0" aria-label="Export code">{{ code }}</pre>
             <div class="pop-foot">

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import SegmentedChoice from './SegmentedChoice.vue'
 import { ChevronDownIcon } from '@lucide/vue'
 import { PopoverRoot, PopoverTrigger, PopoverPortal, PopoverContent } from 'reka-ui'
 import {
@@ -14,6 +16,15 @@ import {
   type GenerationSettings,
 } from '@/app/palette-store'
 import { showRegenerationToast } from '@/app/toast'
+const placementOptions = computed(() => [
+  { value: 'auto' as const, label: 'Auto' },
+  ...displayShades.value.map((e) => ({
+    value: e.shade,
+    label: e.shade === anchorShade.value ? '●' : '',
+    ariaLabel: `Shade ${e.shade}`,
+    style: { background: e.css, color: e.contrastOnBlack >= e.contrastOnWhite ? '#000' : '#fff' },
+  })),
+])
 function returnFocus(): void {
   requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('.use')?.focus())
 }
@@ -38,22 +49,16 @@ function update(patch: Partial<GenerationSettings>): void {
         <div class="pop" aria-labelledby="color-use-title">
           <h3 id="color-use-title">How your color is used</h3>
           <div class="wb-ctl">
-            <div class="wb-seg full" role="radiogroup" aria-label="Color matching">
-              <button
-                role="radio"
-                :aria-checked="seedMode === 'exact'"
-                @click="update({ seedMode: 'exact' })"
-              >
-                Keep it exact
-              </button>
-              <button
-                role="radio"
-                :aria-checked="seedMode === 'canonical'"
-                @click="update({ seedMode: 'canonical' })"
-              >
-                Fit to Tailwind
-              </button>
-            </div>
+            <SegmentedChoice
+              :model-value="seedMode"
+              :options="[
+                { value: 'exact', label: 'Keep it exact' },
+                { value: 'canonical', label: 'Fit to Tailwind' },
+              ]"
+              aria-label="Color matching"
+              full
+              @update:model-value="update({ seedMode: $event })"
+            />
             <p class="wb-help">
               {{
                 seedMode === 'exact'
@@ -64,30 +69,13 @@ function update(patch: Partial<GenerationSettings>): void {
           </div>
           <div class="wb-ctl">
             <span id="place-label" class="wb-cl">Place it at</span>
-            <div class="place" role="radiogroup" aria-labelledby="place-label">
-              <button
-                class="auto"
-                role="radio"
-                :aria-checked="anchor === 'auto'"
-                @click="update({ anchor: 'auto' })"
-              >
-                Auto
-              </button>
-              <button
-                v-for="e in displayShades"
-                :key="e.shade"
-                role="radio"
-                :aria-checked="anchor === e.shade"
-                :aria-label="`Shade ${e.shade}`"
-                :style="{
-                  background: e.css,
-                  color: e.contrastOnBlack >= e.contrastOnWhite ? '#000' : '#fff',
-                }"
-                @click="update({ anchor: e.shade })"
-              >
-                {{ e.shade === anchorShade ? '●' : '' }}
-              </button>
-            </div>
+            <SegmentedChoice
+              class="place"
+              :model-value="anchor"
+              :options="placementOptions"
+              aria-labelledby="place-label"
+              @update:model-value="update({ anchor: $event })"
+            />
             <p class="wb-help">
               {{
                 anchor === 'auto'
@@ -98,47 +86,34 @@ function update(patch: Partial<GenerationSettings>): void {
           </div>
           <div v-if="hueDriftOptions.length > 1" class="wb-ctl">
             <span id="hue-label" class="wb-cl">Hue drift across the scale</span>
-            <div class="wb-seg full" role="radiogroup" aria-labelledby="hue-label">
-              <button
-                v-for="option in hueDriftOptions"
-                :key="option"
-                role="radio"
-                :aria-checked="huePath === option"
-                @click="update({ huePath: option })"
-              >
-                {{ option === 'balanced' ? 'Balanced' : `Like ${option}` }}
-              </button>
-            </div>
+            <SegmentedChoice
+              :model-value="huePath"
+              :options="
+                hueDriftOptions.map((option) => ({
+                  value: option,
+                  label: option === 'balanced' ? 'Balanced' : `Like ${option}`,
+                }))
+              "
+              aria-labelledby="hue-label"
+              full
+              @update:model-value="update({ huePath: $event })"
+            />
           </div>
           <div class="wb-ctl">
             <span id="gamut-label" class="wb-cl">Display range</span>
-            <div class="wb-seg full" role="radiogroup" aria-labelledby="gamut-label">
-              <button
-                role="radio"
-                :aria-checked="gamut === 'srgb'"
-                @click="update({ gamut: 'srgb' })"
-              >
-                sRGB
-              </button>
-              <button
-                role="radio"
-                :aria-checked="gamut === 'display-p3'"
-                @click="update({ gamut: 'display-p3' })"
-              >
-                Display P3
-              </button>
-              <button
-                role="radio"
-                :aria-checked="gamut === 'none'"
-                @click="update({ gamut: 'none' })"
-              >
-                No limit
-              </button>
-            </div>
-          </div>
-        </div></PopoverContent
-      ></PopoverPortal
-    >
+            <SegmentedChoice
+              :model-value="gamut"
+              :options="[
+                { value: 'srgb', label: 'sRGB' },
+                { value: 'display-p3', label: 'Display P3' },
+                { value: 'none', label: 'No limit' },
+              ]"
+              aria-labelledby="gamut-label"
+              full
+              @update:model-value="update({ gamut: $event })"
+            />
+          </div></div></PopoverContent
+    ></PopoverPortal>
   </PopoverRoot>
 </template>
 
@@ -196,33 +171,6 @@ function update(patch: Partial<GenerationSettings>): void {
   color: var(--wb-fg-3);
   font-size: 12px;
   text-wrap: pretty;
-}
-.place {
-  display: grid;
-  grid-template-columns: auto repeat(11, minmax(0, 1fr));
-  gap: 3px;
-}
-.place button {
-  height: 30px;
-  border: 0;
-  border-radius: 5px;
-  font-size: 10px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  padding: 0;
-}
-.place button.auto {
-  padding: 0 10px;
-  background: var(--wb-sunken);
-  border: 1px solid var(--wb-line);
-  color: var(--wb-fg);
-  font-size: 12px;
-  font-weight: 500;
-}
-.place button[aria-checked='true'] {
-  box-shadow:
-    0 0 0 2px var(--wb-panel),
-    0 0 0 3.5px var(--wb-fg);
 }
 
 .use {
