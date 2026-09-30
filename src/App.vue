@@ -2,6 +2,8 @@
 import { onMounted, onBeforeUnmount, ref } from 'vue'
 import ProductGuide from './components/ProductGuide.vue'
 import SourceBar from './components/SourceBar.vue'
+import PalettePreview from './components/PalettePreview.vue'
+import EndAdjustments from './components/EndAdjustments.vue'
 import CurveLanes from './components/CurveLanes.vue'
 import ScaleStrip from './components/ScaleStrip.vue'
 import ShadeBar from './components/ShadeBar.vue'
@@ -44,7 +46,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', shortcut))
   <a class="skip-link wb-sr-only" href="#main-content" @click.prevent="moveToSection('main-content')">Skip to palette generator</a>
   <main id="main-content" class="workbench-page page" tabindex="-1">
     <h1 class="wb-sr-only">Tailwind shade generator</h1>
-    <div class="wrap"><div class="app"><SourceBar :is-dark="isDark" @toggle-theme="toggleTheme" /><div class="work"><div class="main"><ScaleStrip @hover="hoverCol = $event" /><ShadeBar /><CurveLanes :hover-col="hoverCol" /></div></div></div>
+    <div class="wrap"><div class="app"><SourceBar :is-dark="isDark" @toggle-theme="toggleTheme" /><div class="work"><div class="main"><ScaleStrip @hover="hoverCol = $event" /><ShadeBar /><CurveLanes :hover-col="hoverCol" /></div><aside class="side" aria-label="Preview and adjustments"><PalettePreview /><EndAdjustments /></aside></div></div>
       <ProductGuide id="how-it-works" :tailwind-version="lastResult?.reference.tailwindVersion" />
     </div><AppToast />
   </main>
@@ -72,4 +74,6 @@ h2.wb-h { margin: 0; font-size: 13px; font-weight: 600; }
 .wrap { max-width: 1480px; margin-inline: auto; }
 .app-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; padding: 12px 16px; border-top: 1px solid var(--wb-line); color: var(--wb-fg-3); font-size: 12px; }
 .app-foot a { color: var(--wb-fg-2); text-underline-offset: 2px; }.skip-link:focus { position: fixed; top: 8px; left: 8px; width: auto; height: auto; clip: auto; z-index: 100; padding: 8px; background: var(--wb-panel); }
+@media(max-width:1180px) { .work {grid-template-columns:minmax(0,1fr) 290px;} }
+@media(max-width:880px) { .work {grid-template-columns:minmax(0,1fr);} .side {border-left:0;border-top:1px solid var(--wb-line);} }
 </style>
