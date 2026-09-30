@@ -2,6 +2,8 @@
 import { onMounted, onBeforeUnmount, ref } from 'vue'
 import ProductGuide from './components/ProductGuide.vue'
 import SourceBar from './components/SourceBar.vue'
+import ScaleStrip from './components/ScaleStrip.vue'
+import ShadeBar from './components/ShadeBar.vue'
 import AppToast from './components/AppToast.vue'
 import { generate, lastResult, undo, redo, canUndo, canRedo, restoreSharedPaletteFromHash, shareLoadError } from './app/palette-store'
 import { showToast } from './app/toast'
@@ -40,7 +42,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', shortcut))
   <a class="skip-link wb-sr-only" href="#main-content" @click.prevent="moveToSection('main-content')">Skip to palette generator</a>
   <main id="main-content" class="workbench-page page" tabindex="-1">
     <h1 class="wb-sr-only">Tailwind shade generator</h1>
-    <div class="wrap"><div class="app"><SourceBar :is-dark="isDark" @toggle-theme="toggleTheme" /></div>
+    <div class="wrap"><div class="app"><SourceBar :is-dark="isDark" @toggle-theme="toggleTheme" /><div class="work"><div class="main"><ScaleStrip /><ShadeBar /></div></div></div>
       <ProductGuide id="how-it-works" :tailwind-version="lastResult?.reference.tailwindVersion" />
     </div><AppToast />
   </main>
