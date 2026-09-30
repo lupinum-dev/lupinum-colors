@@ -16,9 +16,7 @@ import {
   redo,
   canUndo,
   canRedo,
-  shareLoadError,
 } from './app/palette-store'
-import { showToast } from './app/toast'
 if (!lastResult.value) generate()
 const isDark = ref(true)
 const hoverCol = ref(-1)
@@ -58,7 +56,6 @@ function shortcut(event: KeyboardEvent): void {
 }
 onMounted(() => {
   isDark.value = document.documentElement.classList.contains('dark')
-  if (shareLoadError.value) showToast(shareLoadError.value)
   window.addEventListener('keydown', shortcut)
 })
 onBeforeUnmount(() => window.removeEventListener('keydown', shortcut))

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount } from 'vue'
 import { Undo2Icon, Redo2Icon, SunIcon, MoonIcon, LinkIcon, TriangleAlertIcon } from '@lucide/vue'
-import { converter } from 'culori'
+import { formatHex } from '@/color'
 import {
   anchorShade,
   canUndo,
@@ -24,21 +24,9 @@ import ExportMenu from './ExportMenu.vue'
 defineProps<{ isDark: boolean }>()
 const emit = defineEmits<{ toggleTheme: [] }>()
 const anchorDisplay = computed(() => displayShades.value.find((e) => e.shade === anchorShade.value))
-const toRgb = converter('rgb')
-const pickerHex = computed(() => {
-  if (anchorDisplay.value?.hex) return anchorDisplay.value.hex
-  const rgb = toRgb(anchorDisplay.value?.css ?? '#16661f')
-  return (
-    '#' +
-    [rgb?.r ?? 0, rgb?.g ?? 0, rgb?.b ?? 0]
-      .map((v) =>
-        Math.round(Math.max(0, Math.min(1, v)) * 255)
-          .toString(16)
-          .padStart(2, '0'),
-      )
-      .join('')
-  )
-})
+const pickerHex = computed(() =>
+  anchorDisplay.value ? formatHex(anchorDisplay.value.mapped) : '#16661f',
+)
 let timer: ReturnType<typeof setTimeout> | undefined
 function regenerate(): void {
   const outcome = generate()
