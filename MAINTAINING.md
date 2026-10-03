@@ -37,9 +37,10 @@ cutover when no released contract needs them.
 
 ## Dependency update
 
-Renovate owns routine dependency updates. Dependabot alerts provide security
-visibility. Review lockfile changes and lifecycle scripts. Do not bypass the
-24-hour release-age policy for convenience.
+Dependabot opens weekly update pull requests for npm packages and GitHub
+Actions, and its alerts provide security visibility. Review lockfile changes
+and lifecycle scripts. Do not bypass the 24-hour release-age policy for
+convenience.
 
 ```sh
 pnpm install --frozen-lockfile
@@ -85,12 +86,6 @@ incident note.
 Stop deployments. Revoke the affected credential, review GitHub and Vercel
 logs, and rotate it in the owning service. Never commit replacement secrets.
 Confirm that old deployments cannot read a replacement value.
-
-## Open-source launch gates
-
-The repository is ready to become public only when the `Launch checklist`
-issue proves the GitHub, Vercel, DNS, legal, and production settings that files
-cannot prove.
 
 ## Agent-operated local checks
 
