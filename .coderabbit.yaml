@@ -9,7 +9,6 @@ reviews:
   poem: false
   review_status: true
   path_filters:
-    - '!artifacts/**'
     - '!**/*.png'
     - '!**/*.woff'
     - '!**/*.woff2'
@@ -20,7 +19,7 @@ reviews:
         and credential isolation. This app must not publish to npm.
     - path: '**/*.md'
       instructions: |
-        Follow docs/WRITING.md. Keep public prose direct and do not rewrite
+        Use plain, direct language. Keep public prose direct and do not rewrite
         legal text, quotations, generated evidence, or historical records.
     - path: 'test/**'
       instructions: |
