@@ -9,7 +9,6 @@ reviews:
   poem: false
   review_status: true
   path_filters:
-    - '!artifacts/**'
     - '!**/*.png'
     - '!**/*.woff'
     - '!**/*.woff2'
@@ -20,8 +19,7 @@ reviews:
         and credential isolation. This app must not publish to npm.
     - path: '**/*.md'
       instructions: |
-        Follow docs/WRITING.md. Keep public prose direct and do not rewrite
-        legal text, quotations, generated evidence, or historical records.
+        Keep public prose plain and direct. Do not rewrite legal text, quotations, generated evidence, or historical records.
     - path: 'test/**'
       instructions: |
         Prefer contract and failure tests. Confirm that each test proves the
@@ -32,7 +30,7 @@ reviews:
     auto_incremental_review: true
     auto_pause_after_reviewed_commits: 5
     ignore_usernames:
-      - renovate[bot]
+      - dependabot[bot]
       - github-actions[bot]
 
 chat:

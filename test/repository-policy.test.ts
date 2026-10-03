@@ -80,6 +80,12 @@ describe('repository policy', () => {
     expect(run('HEAD')).toBe(0)
   })
 
+  it('deploys changes to Vercel configuration and the ignore script', () => {
+    const script = read('scripts/vercel-ignore.mjs')
+    expect(script).toContain("'vercel.json'")
+    expect(script).toContain("'scripts/vercel-ignore.mjs'")
+  })
+
   it('pins every external GitHub Action to a full commit SHA', () => {
     const workflow = read('.github/workflows/ci.yml')
     const references = [...workflow.matchAll(/uses:\s+([^\s#]+)/g)].map((match) => match[1])

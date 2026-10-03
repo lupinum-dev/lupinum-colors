@@ -24,6 +24,7 @@ import {
   shades,
   undo,
 } from '../src/app/palette-store'
+import { generatePalette } from '../src/palette'
 import { emptyEnds } from '../src/app/scale-ends'
 import { clonePalette } from '../src/app/palette-tools'
 
@@ -53,6 +54,24 @@ beforeEach(() => {
 })
 
 describe('share palette codec', () => {
+  it('round trips extreme generated chroma within the editor range', () => {
+    const result = generatePalette({
+      name: 'brand',
+      color: 'oklch(98% 0.3 145)',
+      seed: 'exact',
+      anchor: 50,
+      gamut: 'none',
+    })
+    const palette = Object.fromEntries(
+      Object.entries(result.shades).map(([shade, value]) => [shade, value.raw]),
+    ) as NonNullable<typeof shades.value>
+    const payload = { ...currentPayload(), b: paletteToTuple(palette), p: paletteToTuple(palette) }
+    expect(decodeSharedPalette(encodeSharedPalette(payload))).toEqual(payload)
+    expect(Math.max(...payload.p.map((color) => color[1]))).toBeLessThanOrEqual(0.4)
+    const legacy = { ...payload, p: payload.p.map(() => [0.5, 1, 360] as [number, number, number]) }
+    expect(decodeSharedPalette(encodeSharedPalette(legacy))).toEqual(legacy)
+  })
+
   it('round trips exact palettes and Unicode-safe UTF-8 data', () => {
     const payload = currentPayload()
     payload.r[0] = 'blå'

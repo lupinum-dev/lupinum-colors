@@ -127,10 +127,12 @@ function makeEntry(): HistoryEntry | null {
     result: lastResult.value,
     settings: {
       seedColor: lastResult.value.input.original,
-      seedMode: seedMode.value,
-      anchor: anchor.value,
-      gamut: gamut.value,
-      huePath: huePath.value,
+      seedMode: lastResult.value.configuration.seed,
+      anchor: lastResult.value.configuration.anchorWasInferred
+        ? 'auto'
+        : lastResult.value.configuration.anchor,
+      gamut: lastResult.value.configuration.gamut,
+      huePath: lastResult.value.configuration.huePath,
     },
     ends: endsState.value,
     selected: selectedShade.value,
@@ -138,7 +140,12 @@ function makeEntry(): HistoryEntry | null {
   }
 }
 function palettesMatch(left: ReadonlyPalette, right: ReadonlyPalette): boolean {
-  return SHADE_NAMES.every((shade) => perceptualDistance(left[shade], right[shade]) <= 1e-10)
+  return SHADE_NAMES.every(
+    (shade) =>
+      left[shade].l === right[shade].l &&
+      left[shade].c === right[shade].c &&
+      left[shade].h === right[shade].h,
+  )
 }
 export function commit(): void {
   const next = makeEntry()
@@ -167,6 +174,7 @@ function generateWithHuePath(path: string): PaletteResult {
   })
 }
 export function generate(): GenerateOutcome {
+  seedColor.value = seedColor.value.trim()
   let result: PaletteResult
   try {
     result = generateWithHuePath(huePath.value)

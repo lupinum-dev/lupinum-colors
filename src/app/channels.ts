@@ -1,5 +1,5 @@
 import { normalizeHue } from '../color'
-import type { OklchColor } from '../types'
+import { MAX_CHROMA, type OklchColor } from '../types'
 
 export interface Channel {
   key: string
@@ -34,7 +34,7 @@ export const OKLCH_CHANNELS: readonly Channel[] = [
     label: 'C',
     name: 'Chroma',
     min: 0,
-    max: 0.4,
+    max: MAX_CHROMA,
     step: 0.001,
     format: (value) => value.toFixed(3),
     get: (color) => color.c,

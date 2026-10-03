@@ -19,6 +19,7 @@ import {
   redo,
   referenceName,
   referenceRanks,
+  restoreSharedPaletteFromHash,
   seedColor,
   selectedShade,
   selectShade,
@@ -73,6 +74,30 @@ describe('workbench palette state', () => {
     expect(decodeSharedPalette(window.location.hash)?.r[1]).toBe('#3b82f6')
     undo()
     expect(seedColor.value).toBe('#3b82f6')
+  })
+  it('normalizes padded source input before storing and sharing it', () => {
+    expect(updateGeneration({ seedColor: ' '.repeat(257) + '#16661f' }).ok).toBe(true)
+    expect(seedColor.value).toBe('#16661f')
+    expect(decodeSharedPalette(window.location.hash)?.r[1]).toBe('#16661f')
+  })
+  it('shares the last successful generation settings after invalid input and an edit', () => {
+    expect(updateGeneration({ seedColor: 'invalid', anchor: 50 }).ok).toBe(false)
+    commitShade(300, { l: 0.72, c: 0.123, h: 287.5 })
+    const hash = window.location.hash
+    expect(restoreSharedPaletteFromHash(hash)).toBe('restored')
+    expect(anchor.value).toBe('auto')
+    expect(seedColor.value).toBe('#3b82f6')
+  })
+  it('keeps achromatic hue edits in history and share links', () => {
+    commitShade(500, { l: 0.5, c: 0, h: 0 })
+    commitShade(500, { l: 0.5, c: 0, h: 120 })
+    expect(decodeSharedPalette(window.location.hash)?.p[5]).toEqual([0.5, 0, 120])
+    undo()
+    expect(shades.value![500].h).toBe(0)
+    redo()
+    expect(shades.value![500].h).toBe(120)
+    expect(restoreSharedPaletteFromHash(window.location.hash)).toBe('restored')
+    expect(shades.value![500].h).toBe(120)
   })
   it('keeps invalid names out of generation and tokens', () => {
     paletteName.value = 'not valid!'

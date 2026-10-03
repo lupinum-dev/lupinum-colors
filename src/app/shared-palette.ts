@@ -1,3 +1,4 @@
+import { MAX_COLOR_SOURCE_LENGTH } from '@/color'
 import { loadTailwindFamilies } from '@/tailwind-data'
 import {
   SHADE_NAMES,
@@ -96,7 +97,7 @@ function validateSharedPalette(value: unknown): SharedPaletteV1 {
   if (typeof name !== 'string' || !/^\p{L}[\p{L}\p{N}-]*$/u.test(name) || name.length > 64) {
     throw new SharedPaletteError('This share link contains an invalid palette name.')
   }
-  if (typeof color !== 'string' || color.length === 0 || color.length > 256) {
+  if (typeof color !== 'string' || color.length === 0 || color.length > MAX_COLOR_SOURCE_LENGTH) {
     throw new SharedPaletteError('This share link contains an invalid starting color.')
   }
   if (seed !== 'exact' && seed !== 'canonical') {
@@ -132,6 +133,7 @@ function validatePaletteTuple(value: unknown, label: string): PaletteTuple {
     if (![l, c, h].every((channel) => typeof channel === 'number' && Number.isFinite(channel))) {
       throw new SharedPaletteError(`This share link contains a non-numeric ${label}.`)
     }
+    // Generation caps chroma at MAX_CHROMA, but v1 links always accepted up to 1.
     if (l < 0 || l > 1 || c < 0 || c > 1 || h < 0 || h > 360) {
       throw new SharedPaletteError(`This share link contains an out-of-range ${label}.`)
     }

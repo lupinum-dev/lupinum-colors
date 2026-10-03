@@ -1,3 +1,5 @@
+export const MAX_CHROMA = 0.4
+
 export const SHADE_NAMES = Object.freeze([
   50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950,
 ] as const)
