@@ -74,6 +74,11 @@ describe('workbench palette state', () => {
     undo()
     expect(seedColor.value).toBe('#3b82f6')
   })
+  it('normalizes padded source input before storing and sharing it', () => {
+    expect(updateGeneration({ seedColor: ' '.repeat(257) + '#16661f' }).ok).toBe(true)
+    expect(seedColor.value).toBe('#16661f')
+    expect(decodeSharedPalette(window.location.hash)?.r[1]).toBe('#16661f')
+  })
   it('keeps invalid names out of generation and tokens', () => {
     paletteName.value = 'not valid!'
     expect(nameIsValid.value).toBe(false)

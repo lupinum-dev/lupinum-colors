@@ -1,3 +1,4 @@
+import { MAX_COLOR_SOURCE_LENGTH } from '@/color'
 import { loadTailwindFamilies } from '@/tailwind-data'
 import {
   MAX_CHROMA,
@@ -97,7 +98,7 @@ function validateSharedPalette(value: unknown): SharedPaletteV1 {
   if (typeof name !== 'string' || !/^\p{L}[\p{L}\p{N}-]*$/u.test(name) || name.length > 64) {
     throw new SharedPaletteError('This share link contains an invalid palette name.')
   }
-  if (typeof color !== 'string' || color.length === 0 || color.length > 256) {
+  if (typeof color !== 'string' || color.length === 0 || color.length > MAX_COLOR_SOURCE_LENGTH) {
     throw new SharedPaletteError('This share link contains an invalid starting color.')
   }
   if (seed !== 'exact' && seed !== 'canonical') {

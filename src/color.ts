@@ -10,6 +10,8 @@ import {
 } from 'culori'
 import type { Gamut, OklchColor, ParsedColor } from './types.js'
 
+export const MAX_COLOR_SOURCE_LENGTH = 256
+
 const toOklch = converter('oklch')
 const toOklab = converter('oklab')
 const oklabDistance = differenceEuclidean('oklab')
@@ -24,7 +26,11 @@ export function parseColor(input: string | OklchColor): ParsedColor {
     }
   }
 
-  const parsed = parse(input.trim())
+  const normalized = input.trim()
+  if (normalized.length > MAX_COLOR_SOURCE_LENGTH) {
+    throw new Error(`Color input must be ${MAX_COLOR_SOURCE_LENGTH} characters or fewer.`)
+  }
+  const parsed = parse(normalized)
   const converted = parsed ? toOklch(parsed) : undefined
   if (!parsed || !converted) {
     throw new Error(

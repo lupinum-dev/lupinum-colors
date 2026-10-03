@@ -167,6 +167,7 @@ function generateWithHuePath(path: string): PaletteResult {
   })
 }
 export function generate(): GenerateOutcome {
+  seedColor.value = seedColor.value.trim()
   let result: PaletteResult
   try {
     result = generateWithHuePath(huePath.value)
