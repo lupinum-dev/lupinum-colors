@@ -127,10 +127,12 @@ function makeEntry(): HistoryEntry | null {
     result: lastResult.value,
     settings: {
       seedColor: lastResult.value.input.original,
-      seedMode: seedMode.value,
-      anchor: anchor.value,
-      gamut: gamut.value,
-      huePath: huePath.value,
+      seedMode: lastResult.value.configuration.seed,
+      anchor: lastResult.value.configuration.anchorWasInferred
+        ? 'auto'
+        : lastResult.value.configuration.anchor,
+      gamut: lastResult.value.configuration.gamut,
+      huePath: lastResult.value.configuration.huePath,
     },
     ends: endsState.value,
     selected: selectedShade.value,
