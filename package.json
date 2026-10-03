@@ -57,7 +57,7 @@
     "typescript": "~6.0.0",
     "vite": "npm:@voidzero-dev/vite-plus-core@0.3.0",
     "vite-plugin-vue-devtools": "^8.1.5",
-    "vite-plus": "0.3.0",
+    "vite-plus": "1.0.0",
     "vue-tsc": "^3.3.7",
     "yaml": "2.9.0"
   },
