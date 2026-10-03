@@ -11,6 +11,7 @@ import {
 } from './color.js'
 import { loadTailwindFamilies, loadTailwindReference } from './tailwind-data.js'
 import {
+  MAX_CHROMA,
   SHADE_NAMES,
   type AnchorCandidate,
   type Gamut,
@@ -105,6 +106,7 @@ export function generatePaletteFromFamilies(
       ? buildChromaticTemplate(input.oklch.h, anchor, families, request.huePath ?? 'balanced')
       : buildNeutralTemplate(input.oklch, anchor, families, request.huePath ?? 'balanced')
   const rawColors = seed === 'exact' ? anchorTemplate(template, input.oklch, anchor) : template
+  for (const shade of SHADE_NAMES) rawColors[shade].c = Math.min(MAX_CHROMA, rawColors[shade].c)
   const evaluation = evaluatePalette(rawColors, gamut)
   const { shades, lightnessMonotonic, maximumHueJump, minimumAdjacentDelta } = evaluation
   const compressedShades = SHADE_NAMES.filter((shade) => !shades[shade].inGamut).length
