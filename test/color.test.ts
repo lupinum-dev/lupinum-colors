@@ -1,7 +1,8 @@
-import { inGamut } from 'culori'
+import { inGamut, wcagContrast } from 'culori'
 import { describe, expect, it } from 'vite-plus/test'
 import {
   contrastRatio,
+  contrastRatios,
   formatHex,
   formatOklch,
   mapToGamut,
@@ -40,6 +41,22 @@ describe('color input and output', () => {
     expect(contrastRatio(white, black)).toBeCloseTo(21, 8)
     expect(contrastRatio(white, white)).toBeCloseTo(1, 8)
     expect(contrastRatio(white, black)).toBeCloseTo(contrastRatio(black, white), 8)
+  })
+
+  it('bounds raw gamut contrast to displayed sRGB while preserving in-gamut ratios', () => {
+    const source = { l: 0.14, c: 0.4, h: 270 }
+    const white = { l: 1, c: 0, h: 0 }
+    const black = { l: 0, c: 0, h: 0 }
+    const ratios = contrastRatios(source)
+    expect(ratios.onWhite).toBeLessThanOrEqual(21)
+    expect(ratios.onBlack).toBeLessThanOrEqual(21)
+    expect(contrastRatio(source, white)).toBeCloseTo(ratios.onWhite, 12)
+    expect(contrastRatio(black, source)).toBeCloseTo(ratios.onBlack, 12)
+    const green = parseColor('#16661f').oklch
+    expect(contrastRatio(green, white)).toBe(
+      wcagContrast({ mode: 'oklch', ...green }, { mode: 'oklch', ...white }),
+    )
+    expect(contrastRatios(green).onBlack).toBe(wcagContrast({ mode: 'oklch', ...green }, 'black'))
   })
 
   it('maps excessive chroma without changing lightness or hue materially', () => {

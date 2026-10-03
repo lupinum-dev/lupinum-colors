@@ -114,7 +114,7 @@ export function contrastRatios(color: OklchColor): {
   onWhite: number
   onBlack: number
 } {
-  const value = asCulori(color)
+  const value = asCulori(mapToGamut(color, 'srgb').color)
   return {
     onWhite: wcagContrast(value, 'white'),
     onBlack: wcagContrast(value, 'black'),
@@ -122,7 +122,10 @@ export function contrastRatios(color: OklchColor): {
 }
 
 export function contrastRatio(first: OklchColor, second: OklchColor): number {
-  return wcagContrast(asCulori(first), asCulori(second))
+  return wcagContrast(
+    asCulori(mapToGamut(first, 'srgb').color),
+    asCulori(mapToGamut(second, 'srgb').color),
+  )
 }
 
 function asCulori(color: OklchColor): Color {
