@@ -140,7 +140,12 @@ function makeEntry(): HistoryEntry | null {
   }
 }
 function palettesMatch(left: ReadonlyPalette, right: ReadonlyPalette): boolean {
-  return SHADE_NAMES.every((shade) => perceptualDistance(left[shade], right[shade]) <= 1e-10)
+  return SHADE_NAMES.every(
+    (shade) =>
+      left[shade].l === right[shade].l &&
+      left[shade].c === right[shade].c &&
+      left[shade].h === right[shade].h,
+  )
 }
 export function commit(): void {
   const next = makeEntry()

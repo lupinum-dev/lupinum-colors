@@ -88,6 +88,17 @@ describe('workbench palette state', () => {
     expect(anchor.value).toBe('auto')
     expect(seedColor.value).toBe('#3b82f6')
   })
+  it('keeps achromatic hue edits in history and share links', () => {
+    commitShade(500, { l: 0.5, c: 0, h: 0 })
+    commitShade(500, { l: 0.5, c: 0, h: 120 })
+    expect(decodeSharedPalette(window.location.hash)?.p[5]).toEqual([0.5, 0, 120])
+    undo()
+    expect(shades.value![500].h).toBe(0)
+    redo()
+    expect(shades.value![500].h).toBe(120)
+    expect(restoreSharedPaletteFromHash(window.location.hash)).toBe('restored')
+    expect(shades.value![500].h).toBe(120)
+  })
   it('keeps invalid names out of generation and tokens', () => {
     paletteName.value = 'not valid!'
     expect(nameIsValid.value).toBe(false)
