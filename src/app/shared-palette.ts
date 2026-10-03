@@ -1,7 +1,6 @@
 import { MAX_COLOR_SOURCE_LENGTH } from '@/color'
 import { loadTailwindFamilies } from '@/tailwind-data'
 import {
-  MAX_CHROMA,
   SHADE_NAMES,
   type Gamut,
   type OklchColor,
@@ -134,8 +133,8 @@ function validatePaletteTuple(value: unknown, label: string): PaletteTuple {
     if (![l, c, h].every((channel) => typeof channel === 'number' && Number.isFinite(channel))) {
       throw new SharedPaletteError(`This share link contains a non-numeric ${label}.`)
     }
-    // V1 links already accepted chroma up to 1; preserve that decoding contract.
-    if (l < 0 || l > 1 || c < 0 || c > Math.max(1, MAX_CHROMA) || h < 0 || h > 360) {
+    // Generation caps chroma at MAX_CHROMA, but v1 links always accepted up to 1.
+    if (l < 0 || l > 1 || c < 0 || c > 1 || h < 0 || h > 360) {
       throw new SharedPaletteError(`This share link contains an out-of-range ${label}.`)
     }
     return [l, c, h]
