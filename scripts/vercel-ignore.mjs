@@ -18,6 +18,8 @@ process.exit(
     'HEAD',
     '--',
     'index.html',
+    'vercel.json',
+    'scripts/vercel-ignore.mjs',
     'package.json',
     'pnpm-lock.yaml',
     'pnpm-workspace.yaml',
